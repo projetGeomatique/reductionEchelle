@@ -1,5 +1,6 @@
 import gdal, gdalconst
 import numpy as np
+from osgeo import osr
 
 class Image():
     def __init__(self, filename):
@@ -49,7 +50,7 @@ class Image():
     referenceFile: path de l'image de reference sur laquelle la reprojection se basera
     Fonction permettant de reprojeter et reechantilloner une image a partir d'une image de reference
     """
-    def reprojectImage(self, referenceFile):
+    def reprojectMatch(self, referenceFile):
         #Ouvrir l'image a reprojeter
         inputFile = self.filename
         input = gdal.Open(inputFile, gdalconst.GA_ReadOnly)
@@ -83,12 +84,31 @@ class Image():
         del output
         return outputfile
 
+    """
+    Fonction permettant de reprojeter l<image qui sera utilisee en reference. Dans ce cas precis, elle reprojete en UTM 
+    zone 18
+    """
+    def reprojectUTM18(self):
+        inputFile = self.filename
+        input = gdal.Open(inputFile, 1)
+
+        srs = osr.SpatialReference()
+        srs.ImportFromEPSG(32618)
+        srsWkt = srs.ExportToWkt()
+
+        input.SetProjection(srsWkt)
+        input.FlushCache()
+        input = None
+
+
+
 
 def main():
     b1 = r'data/CU_LC08.001_SRB1_doy2020229_aid0001.tif'
     image1 = Image(b1)
-    file = image1.reprojectImage(r"MOD11A1.006_Clear_day_cov_doy2020229_aid0001.tif")
-    print(file)
+    #file = image1.reprojectMatch(r"MOD11A1.006_Clear_day_cov_doy2020229_aid0001.tif")
+    image1.reprojectUTM18()
+    #print(file)
 
 
 if __name__ == '__main__':
