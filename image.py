@@ -88,7 +88,7 @@ class Image():
     Fonction permettant de reprojeter l<image qui sera utilisee en reference. Dans ce cas precis, elle reprojete en UTM 
     zone 18
     """
-    def reprojeteUTM18(self):
+    def reprojectUTM18(self):
         inputFile = self.filename
         input = gdal.Open(inputFile, 1)
 
@@ -104,11 +104,11 @@ class Image():
 
 
 def main():
-    b1 = r'CU_LC08.001_SRB1_doy2020229_aid0001.tif'
+    b1 = r'data/CU_LC08.001_SRB1_doy2020229_aid0001.tif'
     image1 = Image(b1)
     #file = image1.reprojectMatch(r"MOD11A1.006_Clear_day_cov_doy2020229_aid0001.tif")
-    image1.reprojeteUTM18()
-
+    image1.reprojectUTM18()
+    #print(file)
 
 
 if __name__ == '__main__':
