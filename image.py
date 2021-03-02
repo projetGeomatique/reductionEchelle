@@ -129,6 +129,14 @@ def main():
     #modis_image1.reproject("reprojected2", "EPSG:32618", 250, 250)
 
     #image1.reprojectMatch(modis_image1.filename)
+
+
+
+def main():
+    b1 = r'data/CU_LC08.001_SRB1_doy2020229_aid0001.tif'
+    image1 = Image(b1)
+    #file = image1.reprojectMatch(r"MOD11A1.006_Clear_day_cov_doy2020229_aid0001.tif")
+    image1.reprojectUTM18()
     #print(file)
 
 
