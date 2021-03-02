@@ -100,6 +100,35 @@ class Image():
         input.FlushCache()
         input = None
 
+    """
+    Fonction permettant de reprojeter l'image qui sera utilisée en référence dans reprojectMatch.
+        outFilename: nom du fichier virtuel en sortie (sans l'extension)
+        outCRS: système de référence dans lequel on souhaite projeter le jeu de données
+        x_resolution: résolution en X souhaitée dans le résultat de la projection
+        y_resolution: résolution en Y souhaitée dans le résultat de la projection
+        resample_alg: algorithme de rééchantillonnage utilisé dans la reprojection (par défaut: plus proche voisin)
+    """
+    def reproject(self, outFilename, outCRS, x_resolution, y_resolution, resample_alg="near"):
+        outVrt = outFilename + '.vrt'
+        warp = gdal.Warp(outVrt, self.filename, format="vrt", dstSRS=outCRS, xRes=x_resolution, yRes=y_resolution,
+                         options=gdal.WarpOptions(resampleAlg=resample_alg))
+        warp = None
+
+        self.filename = outVrt  # la classe Image pointe maintenant sur ce fichier reprojeté
+
+
+def main():
+    b1 = r'data/CU_LC08.001_SRB1_doy2020229_aid0001_test2.tif'
+    image1 = Image(b1)
+    #file = image1.reprojectMatch(r"MOD11A1.006_Clear_day_cov_doy2020229_aid0001.tif")
+    #image1.reprojectUTM18()
+    image1.reproject("reprojected", "EPSG:32618", 30, 30, resample_alg="average")
+
+    #modis_image = r'data/MOD11A1.006_Clear_day_cov_doy2020229_aid0001_clipped.tif'
+    #modis_image1 = Image(modis_image)
+    #modis_image1.reproject("reprojected2", "EPSG:32618", 250, 250)
+
+    #image1.reprojectMatch(modis_image1.filename)
 
 
 
