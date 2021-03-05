@@ -46,7 +46,7 @@ class Aster(Image):
 
         for band in bandsPaths:
             image = Image(band)
-            newBandsPaths.append(image.reprojectImage(referenceFile))
+            newBandsPaths.append(image.reprojectMatch(referenceFile))
 
         self.mnt = newBandsPaths[0]
         self.qa = newBandsPaths[1]
