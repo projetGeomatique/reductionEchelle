@@ -80,9 +80,13 @@ class Secteur:
             # reprojection de l'image MODIS pour avoir la même taille que celle de Landsat préalablement reprojetée
             self.modis_image.reprojectModis(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif')
 
-    def getDf(self, train=True):
+    def getDf(self, predictors, train=True):
         """ Aller chercher le DataFrame contenant l'ensemble des prédicteurs préparés pour le downscaling.
                 Args:
+                    predictors (list): Liste de string des prédicteurs à inclure dans l'entraînement ou la prédiction
+                                       de la réduction d'échelle. Cet argument doit prendre la forme suivante:
+                                       ['NDVI', 'NDWI', 'NDBI', 'MNT', 'Pente']
+                                       avec des prédicteurs disponibles dans cette méthode.
                     train (bool): Indicateur pour déterminer si les données sont préparées pour l'entraînement ou
                                   pour la prédiction.
                                   Si la valeur de l'indicateur est "False", on combine les variables ensemble avec des
@@ -97,23 +101,32 @@ class Secteur:
 
         # ******** PRÉDICTEURS ***********
 
-        # Utilisation de NDVI, NDWI et NDBI ici (masquage des valeurs nulles inclus dans les get pour Landsat)
-        ndvi = self.landsat_image.getNdvi()
-        print("NDVI termine")
-        ndwi = self.landsat_image.getNdwi()
-        print("NDWI termine")
-        ndbi = self.landsat_image.getNdbi()
-        print("NDBI termine")
+        predictors_dict = {}
 
-        # pente = self.aster_image.getPente()
-        # print("Pente termine")
+        # Calcul des prédicteurs (masquage des valeurs nulles inclus dans les get)
+        if 'NDVI' in predictors:
+            ndvi = self.landsat_image.getNdvi()
+            predictors_dict['NDVI'] = ndvi
 
-        # Reshape les array en colonnes
-        ndvi = ndvi.reshape(-1, 1)
-        ndwi = ndwi.reshape(-1, 1)
-        ndbi = ndbi.reshape(-1, 1)
+        if 'NDWI' in predictors:
+            ndwi = self.landsat_image.getNdwi()
+            predictors_dict['NDWI'] = ndwi
 
-        # pente = pente.reshape(-1, 1)
+        if 'NDBI' in predictors:
+            ndbi = self.landsat_image.getNdbi()
+            predictors_dict['NDBI'] = ndbi
+
+        if 'MNT' in predictors:
+            mnt = self.aster_image.getMNT()
+            predictors_dict['MNT'] = mnt
+
+        if 'Pente' in predictors:
+            pente = self.aster_image.getPente()
+            predictors_dict['Pente'] = pente
+
+        # Reshape les array en colonnes pour tous les prédicteurs
+        for predictor in predictors_dict:
+            predictors_dict[predictor] = (predictors_dict[predictor]).reshape(-1, 1)
 
         # ******** MODIS LST ***********
 
@@ -125,6 +138,7 @@ class Secteur:
         # convertir à des températures de surface en Celsius
         lst_metadata = lst_image.getMetadata()
 
+        # vérifier si le scale_factor est présent dans les métadonnées (c'est le cas pour AppEEARS, pas EarthData)
         if 'scale_factor' in lst_metadata:
             scale_factor = float(lst_metadata['scale_factor'])  # multiplier par 0.02
             add_offset = float(lst_metadata['add_offset'])
@@ -132,71 +146,73 @@ class Secteur:
             scale_factor = float(0.02)
             add_offset = float(0)
 
+        # conversion en Kelvin, puis en Celsius
         kelvin_array = np.add(np.multiply(modis_array, scale_factor), add_offset)
         lst_celsius_array = np.subtract(kelvin_array, 273.15)
 
+        # Reshape en une colonne
         lst_celsius_array = lst_celsius_array.reshape(-1, 1)
 
         # appliquer les mêmes masques partout (si un pixel est masqué dans une image, il doit être masqué pour toutes
         # les images)
-        ndvi_mask = ma.getmaskarray(ndvi)
-        ndwi_mask = ma.getmaskarray(ndwi)
-        ndbi_mask = ma.getmaskarray(ndbi)
+        masks = []  # ensemble des masques à remplir
 
-        lst_mask = ma.getmaskarray(lst_celsius_array)
+        for predictor in predictors_dict:
+            masks.append(ma.getmaskarray(predictors_dict[predictor]))
 
-        mask = np.add(np.add(np.add(ndvi_mask, ndwi_mask), ndbi_mask), lst_mask)
+        masks.append(ma.getmaskarray(lst_celsius_array))
+
+        # masque unique pour tous les jeux de données
+        mask = sum(masks)  # somme de masques: toutes les valeurs qui ne sont pas égales à 0 corresponded à une position
+                           # à masquer
         self.mask = mask
 
-        ndvi = ma.masked_array(ndvi, mask)
-        ndwi = ma.masked_array(ndwi, mask)
-        ndbi = ma.masked_array(ndbi, mask)
+        # masquage identique de tous les jeux de données
+        for predictor in predictors_dict:
+            predictors_dict[predictor] = ma.masked_array(predictors_dict[predictor], mask)
+
         lst_celsius_array = ma.masked_array(lst_celsius_array, mask)
 
         # ********* Stack les colonnes ensemble **********
-        # col_stack = np.column_stack((ndvi, ndwi, ndbi, pente))
 
+        # extraire les noms des prédicteurs et les array associés
+        predictor_names = []
+        predictor_values = []
+
+        for predictor in predictors_dict:
+            predictor_names.append(predictor)
+            predictor_values.append(predictors_dict[predictor])
+
+        # construction d'une matrice vide de dimensions (nombre_de_pixels, nombre_de_predicteurs + 1)
         if train:
-            col_stack = ma.column_stack((ndvi, ndwi, ndbi, lst_celsius_array))
+            col_stack = ma.empty([predictor_values[0].shape[0], len(predictor_values) + 1])  # +1 = colonne pour LST
         else:
-            col_stack = np.column_stack((ndvi, ndwi, ndbi, lst_celsius_array))
+            col_stack = np.empty([predictor_values[0].shape[0], len(predictor_values) + 1])  # +1 = colonne pour LST
 
-        # Création d'un dataframe Pandas qui contient le array de 4 colonnes et qui indique les labels de chacune des
-        # colonnes
-        # df = pd.DataFrame(col_stack, columns=['NDVI', 'NDWI', 'NDBI', 'Pente'])
-        df = pd.DataFrame(col_stack, columns=['NDVI', 'NDWI', 'NDBI', 'LST'])  # dataframe ne gère pas les masques?
+        # ajout des prédicteurs dans les colonnes (de la première jusqu'à l'avant-dernière)
+        for i in range(0, len(predictor_values)):
+            col_stack[:, [i]] = predictor_values[i]
+
+        col_stack[:, [-1]] = lst_celsius_array  # ajout de la LST dans la dernière colonne
+        predictor_names.append('LST')
+
+        # Création d'un dataframe Pandas qui contient la matrice construite précédemment et qui indique les labels de
+        # chacune des colonnes
+        df = pd.DataFrame(col_stack, columns=predictor_names)  # dataframe ne gère pas les masques?
 
         #df_test = df['LST']
         #print(df_test[162])
 
-        # Sauvegarder en CSV pour visualisation et vérification plus tard
-        df.to_csv(r'secteur3/donnees_utilisees.csv', index=False)
+        # changer pour que l'utilisateur puisse choisir où sauvegarder (et/ou s'il veut sauvegarder les CSV)
+        if train:
+            # Sauvegarder en CSV pour visualisation et vérification plus tard
+            df.to_csv(r'secteur3/donnees_utilisees_train.csv', index=False)
+            print("DataFrame pour l'entraînement sauvegardé à: secteur3/donnees_utilisees_train.csv")
+        else:
+            df.to_csv(r'secteur3/donnees_utilisees_predict.csv', index=False)
+            print("DataFrame pour la prédiction sauvegardé à: secteur3/donnees_utilisees_predict.csv")
 
         return df
-
-    """
-    def getMODIS(self):
-        # Aller chercher le array formatté de température de surface MODIS comme variable à prédire dans le
-        #    Random Forest Regression.
-
-        # Conversion du array MODIS LST en un format compatible au Random Forest Regression
-        lst_image = Image(self.modis_image.lst)
-
-        array = lst_image.getArray(masked=True, lower_valid_range=7500, upper_valid_range=65535)
-
-        # convertir à des températures de surface en Celsius
-        lst_metadata = lst_image.getMetadata()
-
-        scale_factor = float(lst_metadata['scale_factor'])  # multiplier par 0.02
-        add_offset = float(lst_metadata['add_offset'])
-
-        kelvin_array = np.add(np.multiply(array, scale_factor), add_offset)
-        celsius_array = np.subtract(kelvin_array, 273.15)
-
-        print("Get MODIS termine")
-
-        return celsius_array.ravel()
-    """
 
 
 def main():
@@ -226,9 +242,9 @@ def main():
 
     rfr = Secteur(modis, landsat, aster)
     rfr.prepareData()
-    df = rfr.getDf()
 
-    #rfr.getMODIS()
+    predictors = ['NDVI', 'NDWI', 'NDBI']
+    df = rfr.getDf(predictors)
 
     print(df)
     print(df.drop('LST', axis=1))
