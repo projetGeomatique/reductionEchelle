@@ -23,15 +23,20 @@ class ReductionEchelle:
     def __init__(self, secteur):
         self.secteur = secteur
 
-    def applyDownscaling(self):
-        """ Entraîne un modèle de Random Forest Regression avec certains prédicteurs. Les prédicteurs pourront
-            éventuellement être spécifiés en input arguments.
-
-            Le résultat est sauvegardé dans une nouvelle image (MODIS_predit_100m.tif). Ce paramètre pourra éventuellement
-            être spécifié en input argument également.
+    def applyDownscaling(self, predictors, outputFile):
+        """ Entraîne un modèle de Random Forest Regression avec certains prédicteurs spécifiés dans une liste en entrée
+            et applique par la suite la réduction d'échelle avec le modèle entraîné.
+            Le résultat est sauvegardé dans une nouvelle image.
+                Args:
+                    predictors (list): Liste de string des prédicteurs à inclure dans l'entraînement ou la prédiction
+                                       de la réduction d'échelle. Cet argument doit prendre la forme suivante:
+                                       ['NDVI', 'NDWI', 'NDBI', 'MNT', 'Pente']
+                                       avec des prédicteurs disponibles dans cette méthode.
+                    outputFile (string): Path vers le fichier dans lequel on souhaite sauvegarder le résultat de la
+                                         réduction d'échelle à 100m.
         """
 
-        dataframe = self.secteur.getDf()  # on va cherche le Pandas DataFrame du secteur
+        dataframe = self.secteur.getDf(predictors)  # on va cherche le Pandas DataFrame du secteur
 
         predicteurs = dataframe.drop('LST', axis=1)  # on retire la température de surface (LST) du DataFrame pour ne
                                                      # conserver que les prédicteurs
@@ -39,15 +44,17 @@ class ReductionEchelle:
 
         modis_LST = dataframe['LST']
         modis_LST = modis_LST.dropna()  # pour l'entraînement, on retire les valeurs Nulles
-        modis_LST = modis_LST.ravel()  # format accepté par le Random Forest Regression (une seule ligne)
+        modis_LST = modis_LST.ravel()  # format accepté par le Random Forest Regression pour la variable dépendante Y
+                                       # (une seule ligne)
 
         # Split de l'échantillon d'entraînement et de l'échantillon de test (échantillon de test = 25% de l'échantillon
         # total)
+        test_sample_size = 0.25
         X_train, X_test, y_train, y_test = train_test_split(predicteurs, modis_LST,
-                                                            test_size=0.25, random_state=0)
+                                                            test_size=test_sample_size, random_state=42)
 
         # Initialisation du régresseur avec 100 estimateurs
-        regressor = RandomForestRegressor(n_estimators=100, random_state=0)
+        regressor = RandomForestRegressor(n_estimators=100, random_state=42)
 
         # Entraînement du modèle
         regressor.fit(X_train, y_train)
@@ -57,12 +64,16 @@ class ReductionEchelle:
         y_pred = regressor.predict(X_test)
 
         # Métriques de qualité sur le résultat prédit par rapport à l'échantillon de test (vérité)
+        print("\n")
+        print("Validation interne avec {}% des échantillons".format(test_sample_size*100))
         print('Mean Absolute Error (MAE):', metrics.mean_absolute_error(y_test, y_pred))
         print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
         print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
 
+        print("\n")
         # Importance de chacun des prédicteurs (NDVI, NDWI, NDBI) dans la prédiction
-        print("Importance de chaque prédicteur", regressor.feature_importances_)
+        print("Prédicteurs utilisés:", list(predicteurs.columns))
+        print("Importance de chaque prédicteur:", regressor.feature_importances_)
 
         # Affichage des résidus par rapport à l'échantillon de test (vérité)
         test_residuals = y_test - y_pred
@@ -75,17 +86,19 @@ class ReductionEchelle:
         self.secteur.prepareData(train_model=False)
 
         # Prédiction
-        dataframe_predict = self.secteur.getDf(train=False)
+        dataframe_predict = self.secteur.getDf(predictors, train=False)
         y_downscale_100m = regressor.predict(dataframe_predict.drop('LST', axis=1))
 
-        # Métriques de qualité sur le résultat prédit par rapport à l'échantillon de vérité terrain
+
         # *********** (à faire avec Landsat LST) ****************
+
+        # Métriques de qualité sur le résultat prédit par rapport à l'échantillon de vérité terrain
         # print('Mean Absolute Error (MAE):', metrics.mean_absolute_error(y_test, y_pred))
         # print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
         # print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
 
         # Importance de chacun des prédicteurs (NDVI, NDWI, NDBI) dans la prédiction
-        print("Importance de chaque prédicteur", regressor.feature_importances_)
+        #print("Importance de chaque prédicteur", regressor.feature_importances_)
 
         # Affichage des résidus par rapport à l'échantillon de vérité terrain
         # ************* (à faire avec Landsat LST) **************
@@ -94,15 +107,16 @@ class ReductionEchelle:
         # plt.axhline(y=0, color='r', ls='--')
         # plt.show()
 
-        # *** dernière partie à revoir comment on sauvegarde avec une autre image comme référence ***
-        reference_image = Image(self.secteur.modis_image.lst)
+        # sauvegarder le résultat avec une autre image (de mêmes dimensions et avec la même référence spatiale)
+        # comme référence
+        reference_image = Image(self.secteur.modis_image.lst)  # LST MODIS subdivisée à 100m
 
         y_downscale_100m_masked = ma.masked_array(y_downscale_100m, self.secteur.mask.ravel())
-        y_downscale_100m_masked = ma.filled(y_downscale_100m_masked, np.nan)
+        y_downscale_100m_masked = ma.filled(y_downscale_100m_masked, np.nan)  # on retire les valeurs masquées du output
 
         y_downscale_100m_masked = y_downscale_100m_masked.reshape(reference_image.ysize, reference_image.xsize)
 
-        reference_image.save_band(y_downscale_100m_masked, r'secteur3/MODIS_predit_100m.tif')
+        reference_image.save_band(y_downscale_100m_masked, outputFile)
 
 
 def main():
@@ -167,7 +181,9 @@ def main():
     secteur3.prepareData()
 
     rfr = ReductionEchelle(secteur3)
-    rfr.applyDownscaling()
+
+    predictors = ['NDVI', 'NDWI', 'MNT']
+    rfr.applyDownscaling(predictors, outputFile=r'secteur3/MODIS_predit_100m.tif')
 
 
 if __name__ == '__main__':
