@@ -94,10 +94,15 @@ class Image:
 
         return meta
 
-    def reprojectMatch(self, referenceFile):
+    def reprojectMatch(self, referenceFile, reduce_zone=True):
         """ Permet de reprojeter, découper, aligner et rééchantillonner une image à partir d'une image de référence.
                 Args:
                     referenceFile (string): Path du fichier de l'image de référence à utiliser.
+                    reduce_zone (bool): Indicateur permettant de choisir si on souhaite réduire la zone d'étude
+                                        sur laquelle les images sont "matchées". Ceci est utile pour éviter des
+                                        problèmes avec des valeurs nulles sur les bords des images qui s'alignent
+                                        sur le referenceFile. Par défaut, cette option est égale à True (donc, on
+                                        effectue le rétrécissement de zone).
                 Returns:
                     outputfile (string): Path du fichier de l'image reprojetée.
         """
@@ -117,8 +122,13 @@ class Image:
         referenceTrans[0] = referenceTrans[0] + referenceTrans[1]
         referenceTrans[3] = referenceTrans[3] + referenceTrans[5]
         referenceTrans = tuple(referenceTrans)
-        x = reference.RasterXSize - 2
-        y = reference.RasterYSize - 2
+
+        if reduce_zone:
+            x = reference.RasterXSize - 2
+            y = reference.RasterYSize - 2
+        else:
+            x = reference.RasterXSize
+            y = reference.RasterYSize
 
         # Créer le outputfile avec le format de l'image de référence
         outputfile = inputFile.replace(".tif", "_reproject.tif")

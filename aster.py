@@ -64,19 +64,24 @@ class Aster:
         
         return pente
 
-    def reprojectAster(self, referenceFile):
+    def reprojectAster(self, referenceFile, reduce_zone=True):
         """ Permet de reprojeter, découper, aligner et rééchantillonner une image à partir d'une image de référence.
             Cette méthode effectue ces traitements pour l'ensemble des images de la collection ASTER. Elle fait
             appel à la méthode reprojectMatch() de la classe Image.
                 Args:
                     referenceFile (string): Path du fichier de l'image de référence à utiliser.
+                    reduce_zone (bool): Indicateur permettant de choisir si on souhaite réduire la zone d'étude
+                                        sur laquelle les images sont "matchées". Ceci est utile pour éviter des
+                                        problèmes avec des valeurs nulles sur les bords des images qui s'alignent
+                                        sur le referenceFile. Par défaut, cette option est égale à True (donc, on
+                                        effectue le rétrécissement de zone).
         """
         bandsPaths = [self.mnt, self.qa]
         newBandsPaths = []
 
         for band in bandsPaths:
             image = Image(band)
-            newBandsPaths.append(image.reprojectMatch(referenceFile))
+            newBandsPaths.append(image.reprojectMatch(referenceFile, reduce_zone))
 
         self.mnt = newBandsPaths[0]
         self.qa = newBandsPaths[1]
