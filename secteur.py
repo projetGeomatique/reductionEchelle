@@ -72,13 +72,13 @@ class Secteur:
             self.aster_image.qa = self.aster_image.qa.replace("_reproject", "")
 
             # reprojection de l'image Landsat et ré-échantillonnage à 100m
-            self.landsat_image.reprojectLandsat(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif')
+            self.landsat_image.reprojectLandsat(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif', reduce_zone=False)
 
             # reprojection de l'image Aster pour avoir la même taille que celle de Landsat préalablement reprojetée
-            self.aster_image.reprojectAster(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif')
+            self.aster_image.reprojectAster(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif', reduce_zone=False)
 
             # reprojection de l'image MODIS pour avoir la même taille que celle de Landsat préalablement reprojetée
-            self.modis_image.reprojectModis(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif')
+            self.modis_image.reprojectModis(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif', reduce_zone=False)
 
     def getDf(self, predictors, train=True):
         """ Aller chercher le DataFrame contenant l'ensemble des prédicteurs préparés pour le downscaling.
@@ -104,6 +104,7 @@ class Secteur:
         predictors_dict = {}
 
         # Calcul des prédicteurs (masquage des valeurs nulles inclus dans les get)
+        # Landsat
         if 'NDVI' in predictors:
             ndvi = self.landsat_image.getNdvi()
             predictors_dict['NDVI'] = ndvi
@@ -116,6 +117,63 @@ class Secteur:
             ndbi = self.landsat_image.getNdbi()
             predictors_dict['NDBI'] = ndbi
 
+        if 'MNDWI' in predictors:
+            mndwi = self.landsat_image.getMndwi()
+            predictors_dict['MNDWI'] = mndwi
+
+        if 'SAVI' in predictors:
+            savi = self.landsat_image.getSAVI()
+            predictors_dict['SAVI'] = savi
+
+        if 'Albedo' in predictors:
+            albedo = self.landsat_image.getAlbedo()
+            predictors_dict['Albedo'] = albedo
+
+        if 'BSI' in predictors:
+            bsi = self.landsat_image.getBSI()
+            predictors_dict['BSI'] = bsi
+
+        if 'UI' in predictors:
+            ui = self.landsat_image.getUI()
+            predictors_dict['UI'] = ui
+
+        if 'EVI' in predictors:
+            evi = self.landsat_image.getEVI()
+            predictors_dict['EVI'] = evi
+
+        if 'IBI' in predictors:
+            ibi = self.landsat_image.getIBI()
+            predictors_dict['IBI'] = ibi
+
+        if 'B1' in predictors:
+            b1 = self.landsat_image.getBand(1)
+            predictors_dict['B1'] = b1
+
+        if 'B2' in predictors:
+            b2 = self.landsat_image.getBand(2)
+            predictors_dict['B2'] = b2
+
+        if 'B3' in predictors:
+            b3 = self.landsat_image.getBand(3)
+            predictors_dict['B3'] = b3
+
+        if 'B4' in predictors:
+            b4 = self.landsat_image.getBand(4)
+            predictors_dict['B4'] = b4
+
+        if 'B5' in predictors:
+            b5 = self.landsat_image.getBand(5)
+            predictors_dict['B5'] = b5
+
+        if 'B6' in predictors:
+            b6 = self.landsat_image.getBand(6)
+            predictors_dict['B6'] = b6
+
+        if 'B7' in predictors:
+            b7 = self.landsat_image.getBand(7)
+            predictors_dict['B7'] = b7
+
+        # Aster
         if 'MNT' in predictors:
             mnt = self.aster_image.getMNT()
             predictors_dict['MNT'] = mnt

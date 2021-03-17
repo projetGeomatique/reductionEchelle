@@ -36,7 +36,7 @@ class ReductionEchelle:
                                          réduction d'échelle à 100m.
         """
 
-        dataframe = self.secteur.getDf(predictors)  # on va cherche le Pandas DataFrame du secteur
+        dataframe = self.secteur.getDf(predictors, train=True)  # on va cherche le Pandas DataFrame du secteur
 
         predicteurs = dataframe.drop('LST', axis=1)  # on retire la température de surface (LST) du DataFrame pour ne
                                                      # conserver que les prédicteurs
@@ -66,14 +66,26 @@ class ReductionEchelle:
         # Métriques de qualité sur le résultat prédit par rapport à l'échantillon de test (vérité)
         print("\n")
         print("Validation interne avec {}% des échantillons".format(test_sample_size*100))
+        print('Coefficient of determination (R2):', metrics.r2_score(y_test, y_pred))
         print('Mean Absolute Error (MAE):', metrics.mean_absolute_error(y_test, y_pred))
         print('Mean Squared Error:', metrics.mean_squared_error(y_test, y_pred))
         print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
+        print('Accuracy:', 100 - np.mean(100 * ((abs(y_pred - y_test)) / y_test)))
+        print('Explained variance score (EVS):', metrics.explained_variance_score(y_test, y_pred))
 
-        print("\n")
-        # Importance de chacun des prédicteurs (NDVI, NDWI, NDBI) dans la prédiction
+        print("")
+        # Importance de chacun des prédicteurs dans la prédiction
         print("Prédicteurs utilisés:", list(predicteurs.columns))
         print("Importance de chaque prédicteur:", regressor.feature_importances_)
+        print("")
+
+        # Graphique de l'importance des prédicteurs
+        fig, ax = plt.subplots()
+        y_pos = np.arange(len(list(predicteurs.columns)))
+        ax.barh(y_pos, regressor.feature_importances_, align='center')
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(list(predicteurs.columns))
+        plt.show()
 
         # Affichage des résidus par rapport à l'échantillon de test (vérité)
         test_residuals = y_test - y_pred
@@ -89,6 +101,9 @@ class ReductionEchelle:
         dataframe_predict = self.secteur.getDf(predictors, train=False)
         y_downscale_100m = regressor.predict(dataframe_predict.drop('LST', axis=1))
 
+        # ------------- Correction pour les résidus ------------------
+
+        # **** à faire ****
 
         # *********** (à faire avec Landsat LST) ****************
 
@@ -178,11 +193,19 @@ def main():
     aster = Aster(mnt, qa)
 
     secteur3 = Secteur(modis, landsat, aster)
-    secteur3.prepareData()
+    secteur3.prepareData(train_model=True)
 
     rfr = ReductionEchelle(secteur3)
 
-    predictors = ['NDVI', 'NDWI', 'MNT']
+    # options fournies:
+    #predictors = ['NDVI', 'NDWI', 'NDBI', 'MNDWI', 'SAVI', 'Albedo', 'BSI', 'UI', 'EVI', 'IBI', 'B1', 'B2', 'B3',
+    #              'B4', 'B5', 'B6', 'B7', 'MNT', 'Pente']
+
+    #predictors = ['NDVI', 'NDWI', 'NDBI', 'MNDWI', 'SAVI', 'Albedo', 'BSI', 'UI', 'EVI', 'IBI', 'MNT']
+    #predictors = ['MNT', 'B7', 'B6', 'B1', 'B2', 'BSI', 'MNDWI']  ## Not bad!
+    predictors = ['NDVI', 'MNT']
+    #predictors = ['MNT', 'Albedo', 'MNDWI', 'BSI', 'B1', 'B2']
+    #predictors = ['NDVI', 'NDWI', 'MNT']
     rfr.applyDownscaling(predictors, outputFile=r'secteur3/MODIS_predit_100m.tif')
 
 
