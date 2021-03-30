@@ -23,7 +23,7 @@ class ReductionEchelle:
     def __init__(self, secteur):
         self.secteur = secteur
 
-    def applyDownscaling(self, predictors, outputFile):
+    def applyDownscaling(self, predictors, outputFile, residualCorrection=False, outputFile_withResidualCorrection=None):
         """ Entraîne un modèle de Random Forest Regression avec certains prédicteurs spécifiés dans une liste en entrée
             et applique par la suite la réduction d'échelle avec le modèle entraîné.
             Le résultat est sauvegardé dans une nouvelle image.
@@ -101,10 +101,6 @@ class ReductionEchelle:
         dataframe_predict = self.secteur.getDf(predictors, train=False)
         y_downscale_100m = regressor.predict(dataframe_predict.drop('LST', axis=1))
 
-        # ------------- Correction pour les résidus ------------------
-
-        # **** à faire ****
-
         # *********** (à faire avec Landsat LST) ****************
 
         # Métriques de qualité sur le résultat prédit par rapport à l'échantillon de vérité terrain
@@ -132,6 +128,61 @@ class ReductionEchelle:
         y_downscale_100m_masked = y_downscale_100m_masked.reshape(reference_image.ysize, reference_image.xsize)
 
         reference_image.save_band(y_downscale_100m_masked, outputFile)
+
+        # ------------- Correction pour les résidus ------------------
+
+        if residualCorrection:
+
+            predicted_100m_image = Image(outputFile)
+
+            # ramener à 1km
+            predicted_100m_image.reprojectMatch(self.secteur.modis_image.lst.replace("_reproject", ""), reduce_zone=True)
+            resampled_predicted_100m_image = Image(outputFile.replace(".tif", "_reproject.tif"))
+
+            # Conversion du array MODIS LST en un format compatible au Random Forest Regression
+            tmp_lst_image_1km = Image(self.secteur.modis_image.lst)
+            tmp_lst_image_1km.reprojectMatch(self.secteur.modis_image.lst.replace("_reproject", ""), reduce_zone=True)
+
+            lst_image_1km = Image(self.secteur.modis_image.lst.replace("_reproject", "_reproject_reproject"))
+            modis_array = lst_image_1km.getArray(masked=True, lower_valid_range=7500, upper_valid_range=65535)
+
+            # convertir à des températures de surface en Celsius
+            lst_metadata = lst_image_1km.getMetadata()
+
+            # vérifier si le scale_factor est présent dans les métadonnées (c'est le cas pour AppEEARS, pas EarthData)
+            if 'scale_factor' in lst_metadata:
+                scale_factor = float(lst_metadata['scale_factor'])  # multiplier par 0.02
+                add_offset = float(lst_metadata['add_offset'])
+            else:
+                scale_factor = float(0.02)
+                add_offset = float(0)
+
+            # conversion en Kelvin, puis en Celsius
+            kelvin_array = np.add(np.multiply(modis_array, scale_factor), add_offset)
+            lst_celsius_array = np.subtract(kelvin_array, 273.15)
+
+            lst_image_1km.save_band(lst_celsius_array, r'secteur3/MODIS_1km_Celsius.tif')
+
+            # Calcul des résidus à 1km
+            residus_1km = ma.subtract(lst_celsius_array, resampled_predicted_100m_image.getArray())
+
+            # Sauvegarder l'image 1km pour pouvoir la ramener à 100m par la suite
+            residus_1km_masked = ma.filled(residus_1km, np.nan)  # on retire les valeurs masquées du output
+
+            lst_image_1km.save_band(residus_1km_masked, r'secteur3/residus_1km.tif')
+
+            # Résidus de 1km -> 100m
+            residus_1km_load = Image(r'secteur3/residus_1km.tif')
+            residus_1km_load.reproject(r'secteur3/residus_1km.tif', r'secteur3/residus_100m.tif', 'EPSG:32618', 'np.nan',
+                                       '100.0', 'cubic')
+
+            # Application des résidus sur le résultat
+            residus_100m = Image(r'secteur3/residus_100m.tif')
+
+            predicted_100m_image_with_residuals = ma.add(predicted_100m_image.getArray(), residus_100m.getArray())
+
+            # Sauvegarder le résultat
+            residus_100m.save_band(predicted_100m_image_with_residuals, outputFile_withResidualCorrection)
 
 
 def main():
@@ -206,7 +257,9 @@ def main():
     predictors = ['NDVI', 'MNT']
     #predictors = ['MNT', 'Albedo', 'MNDWI', 'BSI', 'B1', 'B2']
     #predictors = ['NDVI', 'NDWI', 'MNT']
-    rfr.applyDownscaling(predictors, outputFile=r'secteur3/MODIS_predit_100m.tif')
+    rfr.applyDownscaling(predictors, outputFile=r'secteur3/MODIS_predit_100m.tif',
+                                     residualCorrection=True,
+                                     outputFile_withResidualCorrection= r'secteur3/MODIS_predit_100m_avec_residus.tif')
 
 
 if __name__ == '__main__':
