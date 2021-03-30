@@ -131,9 +131,13 @@ class Image:
             y = reference.RasterYSize
 
         # Créer le outputfile avec le format de l'image de référence
-        outputfile = inputFile.replace(".tif", "_reproject.tif")
+        if inputFile.endswith(".TIF"):
+            outputfile = inputFile.replace(".TIF", "_reproject.TIF")
+        else:
+            outputfile = inputFile.replace(".tif", "_reproject.tif")
+
         driver = gdal.GetDriverByName('GTiff')
-        output = driver.Create(outputfile, x, y, 1, bandreference.DataType)
+        output = driver.Create(outputfile, x, y, 1, gdal.GDT_Float32)  # bandreference.DataType
         output.SetGeoTransform(referenceTrans)
         output.SetProjection(referenceProj)
 
