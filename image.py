@@ -317,7 +317,6 @@ class Image:
         return dst_ds_name
 
 
-
 def main():
     """ Tests de la classe et de ses méthodes.
     """

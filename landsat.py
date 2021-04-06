@@ -72,7 +72,7 @@ class Landsat:
         b5_img = Image(self.b5)
         b5_meta = b5_img.getMetadata()
         b5_DN = b5_img.getArray(masked=True, lower_valid_range=0, upper_valid_range=10000)
-
+      
         if 'scale_factor' in b5_meta:
             b5 = np.add(np.multiply(b5_DN, float(b5_meta['scale_factor'])), float(b5_meta['add_offset']))
         else:
@@ -104,7 +104,7 @@ class Landsat:
             b6 = np.add(np.multiply(b6_DN, float(b6_meta['scale_factor'])), float(b6_meta['add_offset']))
         else:
             b6 = np.add(np.multiply(b6_DN, float(0.0001)), float(0))
-
+            
         return np.divide(np.subtract(b6, b5), np.add(b6, b5), where=((np.add(b6, b5)) != 0))
 
     def getNdwi(self):

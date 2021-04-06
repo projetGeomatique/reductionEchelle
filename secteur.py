@@ -51,12 +51,13 @@ class Secteur:
             self.landsat_image.reprojectLandsat(self.modis_image.lst)
 
             self.landsat_image.maskClouds1000m(pourcentageNuage)
-
+            
             # reprojection de l'image Aster pour avoir la même taille que celle de Landsat préalablement reprojetée
             self.aster_image.reprojectAster(self.modis_image.lst)
 
             # reprojection de l'image MODIS pour avoir la même taille que celle de Landsat préalablement reprojetée
             self.modis_image.reprojectModis(self.modis_image.lst)
+
         else:
             # subdivision de l'image MODIS de 1km à 100m
             self.modis_image.subdividePixel(10, "file",
@@ -286,7 +287,6 @@ def main():
     """
 
     # secteur1
-    # secteur1
     b1 = r'27juin2019/CU_LC08.001_SRB1_doy2019178_aid0001.tif'
     b2 = r'27juin2019/CU_LC08.001_SRB2_doy2019178_aid0001.tif'
     b3 = r'27juin2019/CU_LC08.001_SRB3_doy2019178_aid0001.tif'
@@ -304,6 +304,7 @@ def main():
 
     mnt = r'data/ASTGTM_NC.003_ASTER_GDEM_DEM_doy2000061_aid0001.tif'
     qa = r'data/ASTGTM_NUMNC.003_ASTER_GDEM_NUM_doy2000061_aid0001.tif'  # aussi un test (ne semble pas valide)
+
     aster = Aster(mnt, qa)
 
     rfr = Secteur(modis, landsat, aster)
