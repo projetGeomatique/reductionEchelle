@@ -479,7 +479,7 @@ class Landsat:
             band_masked = image.getArray(masked=True, lower_valid_range=0, upper_valid_range=10,
                                          cloud_overlay_filename=filename)
             band_masked = ma.filled(band_masked, np.nan)
-            image.save_band(band_masked, image.filename.replace("masked30m", "masked1000m"))
+            image.save_band(band_masked, image.filename.replace("masked30m_reproject", "masked1000m"))
             newBandsPaths.append(image.filename.replace("masked30m", "masked1000m"))
 
         self.b1 = newBandsPaths[0]
