@@ -40,9 +40,18 @@ class Secteur:
         # ********** masquer nuages + ré-échantillonnage à ajouter **********
 
         if train_model:
-            # reprojection de l'image Landsat et ré-échantillonnage à 100m
+            # reprojection de l'image Landsat et ré-échantillonnage à 100m et masquage des nuages
+            self.landsat_image.maskClouds30m()
+
+            # Masquage de Landsat reechantillonee selon le pourcentage de nuages a l'interieur d'un pixel de 1000m
+
+            imageLandsatQa = Image(self.landsat_image.qa)
+            pourcentageNuage = imageLandsatQa.cloudOverlay(self.modis_image.lst)
+
             self.landsat_image.reprojectLandsat(self.modis_image.lst)
 
+            self.landsat_image.maskClouds1000m(pourcentageNuage)
+            
             # reprojection de l'image Aster pour avoir la même taille que celle de Landsat préalablement reprojetée
             self.aster_image.reprojectAster(self.modis_image.lst)
 
@@ -278,30 +287,30 @@ def main():
     """
 
     # secteur1
-    b1 = r'secteur/CU_LC08.001_SRB1_doy2020229_aid0001.tif'
-    b2 = r'secteur/CU_LC08.001_SRB2_doy2020229_aid0001.tif'
-    b3 = r'secteur/CU_LC08.001_SRB3_doy2020229_aid0001.tif'
-    b4 = r'secteur/CU_LC08.001_SRB4_doy2020229_aid0001.tif'
-    b5 = r'secteur/CU_LC08.001_SRB5_doy2020229_aid0001.tif'
-    b6 = r'secteur/CU_LC08.001_SRB6_doy2020229_aid0001.tif'
-    b7 = r'secteur/CU_LC08.001_SRB7_doy2020229_aid0001.tif'
-    qa = r'secteur/CU_LC08.001_PIXELQA_doy2020229_aid0001.tif'
+    b1 = r'27juin2019/CU_LC08.001_SRB1_doy2019178_aid0001.tif'
+    b2 = r'27juin2019/CU_LC08.001_SRB2_doy2019178_aid0001.tif'
+    b3 = r'27juin2019/CU_LC08.001_SRB3_doy2019178_aid0001.tif'
+    b4 = r'27juin2019/CU_LC08.001_SRB4_doy2019178_aid0001.tif'
+    b5 = r'27juin2019/CU_LC08.001_SRB5_doy2019178_aid0001.tif'
+    b6 = r'27juin2019/CU_LC08.001_SRB6_doy2019178_aid0001.tif'
+    b7 = r'27juin2019/CU_LC08.001_SRB7_doy2019178_aid0001.tif'
+    qa = r'27juin2019/CU_LC08.001_PIXELQA_doy2019178_aid0001.tif'
     landsat = Landsat(b1, b2, b3, b4, b5, b6, b7, qa)
 
-    lst = r'secteur/MOD11A1.006_LST_Day_1km_doy2020221_aid0001.tif'
-    qa = r'secteur/MOD11A1.006_QC_Day_doy2020229_aid0001.tif'  # pas la bonne image, mais juste pour un test, vu que je
-    # trouve pas la bonne image (QA n'est pas utilisé dans le
+    lst = r'27juin2019/MOD11A1.006_LST_Day_1km_doy2019178_aid0001.tif'
+    qa = r'27juin2019/MOD11A1.006_QC_Day_doy2019178_aid0001.tif'
     # test)
     modis = Modis(lst, qa)
 
-    mnt = r'secteur/ASTGTM_NC.003_ASTER_GDEM_DEM_doy2000061_aid0001.tif'
-    qa = r'secteur/ASTGTM_NUMNC.003_ASTER_GDEM_NUM_doy2000061_aid0001.tif'  # aussi un test (ne semble pas valide)
+    mnt = r'data/ASTGTM_NC.003_ASTER_GDEM_DEM_doy2000061_aid0001.tif'
+    qa = r'data/ASTGTM_NUMNC.003_ASTER_GDEM_NUM_doy2000061_aid0001.tif'  # aussi un test (ne semble pas valide)
+
     aster = Aster(mnt, qa)
 
     rfr = Secteur(modis, landsat, aster)
     rfr.prepareData()
 
-    predictors = ['NDVI', 'NDWI', 'NDBI']
+    predictors = ['NDVI', 'NDWI', 'NDBI', 'B1']
     df = rfr.getDf(predictors)
 
     print(df)

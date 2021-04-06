@@ -1,6 +1,7 @@
 import numpy as np
 from image import Image
 from osgeo import gdal, gdal_array, gdalconst, osr
+import numpy.ma as ma
 
 
 class Landsat:
@@ -71,7 +72,7 @@ class Landsat:
         b5_img = Image(self.b5)
         b5_meta = b5_img.getMetadata()
         b5_DN = b5_img.getArray(masked=True, lower_valid_range=0, upper_valid_range=10000)
-
+      
         if 'scale_factor' in b5_meta:
             b5 = np.add(np.multiply(b5_DN, float(b5_meta['scale_factor'])), float(b5_meta['add_offset']))
         else:
@@ -103,7 +104,7 @@ class Landsat:
             b6 = np.add(np.multiply(b6_DN, float(b6_meta['scale_factor'])), float(b6_meta['add_offset']))
         else:
             b6 = np.add(np.multiply(b6_DN, float(0.0001)), float(0))
-
+            
         return np.divide(np.subtract(b6, b5), np.add(b6, b5), where=((np.add(b6, b5)) != 0))
 
     def getNdwi(self):
@@ -432,6 +433,62 @@ class Landsat:
         self.qa = newBandsPaths[7]
 
         print("Landsat:          Reprojection termine")
+
+    def maskClouds30m(self):
+        b1_img = Image(self.b1)
+        b2_img = Image(self.b2)
+        b3_img = Image(self.b3)
+        b4_img = Image(self.b4)
+        b5_img = Image(self.b5)
+        b6_img = Image(self.b6)
+        b7_img = Image(self.b7)
+
+        bandsPaths = [self.b1, self.b2, self.b3, self.b4, self.b5, self.b6, self.b7]
+        newBandsPaths = []
+
+        for band in bandsPaths:
+            image = Image(band)
+            band_masked = image.getArray(masked=True, lower_valid_range=0, upper_valid_range=10000,
+                                         qa_filename=self.qa)
+            band_masked = ma.filled(band_masked, np.nan)
+            image.save_band(band_masked, image.filename.replace(".tif", "masked30m.tif"))
+            newBandsPaths.append(image.filename.replace(".tif", "masked30m.tif"))
+
+        self.b1 = newBandsPaths[0]
+        self.b2 = newBandsPaths[1]
+        self.b3 = newBandsPaths[2]
+        self.b4 = newBandsPaths[3]
+        self.b5 = newBandsPaths[4]
+        self.b6 = newBandsPaths[5]
+        self.b7 = newBandsPaths[6]
+
+    def maskClouds1000m(self, filename):
+        b1_img = Image(self.b1)
+        b2_img = Image(self.b2)
+        b3_img = Image(self.b3)
+        b4_img = Image(self.b4)
+        b5_img = Image(self.b5)
+        b6_img = Image(self.b6)
+        b7_img = Image(self.b7)
+
+        bandsPaths = [self.b1, self.b2, self.b3, self.b4, self.b5, self.b6, self.b7]
+        newBandsPaths = []
+
+        for band in bandsPaths:
+            image = Image(band)
+            band_masked = image.getArray(masked=True, lower_valid_range=0, upper_valid_range=10,
+                                         cloud_overlay_filename=filename)
+            band_masked = ma.filled(band_masked, np.nan)
+            image.save_band(band_masked, image.filename.replace("masked30m_reproject", "masked1000m"))
+            newBandsPaths.append(image.filename.replace("masked30m", "masked1000m"))
+
+        self.b1 = newBandsPaths[0]
+        self.b2 = newBandsPaths[1]
+        self.b3 = newBandsPaths[2]
+        self.b4 = newBandsPaths[3]
+        self.b5 = newBandsPaths[4]
+        self.b6 = newBandsPaths[5]
+        self.b7 = newBandsPaths[6]
 
 
 def main():

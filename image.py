@@ -28,7 +28,8 @@ class Image:
             self.proj = self.dataset.GetProjection()
             self.gt = self.dataset.GetGeoTransform()
 
-    def getArray(self, masked=False, lower_valid_range=None, upper_valid_range=None):
+    def getArray(self, masked=False, lower_valid_range=None, upper_valid_range=None, qa_filename=None,
+                 cloud_overlay_filename=None):
         """ Permet de récupérer un array Numpy contenant l'ensemble des valeurs de pixels de l'image.
 
             Les paramètres d'entrée offrent deux options:
@@ -42,15 +43,46 @@ class Image:
                 Returns:
                     array (Numpy.array ou Numpy.ma.masked_array): Array des valeurs de pixels de l'image.
         """
+
+        band = self.dataset.GetRasterBand(1)
+        in_array = band.ReadAsArray().astype(np.float32)
         # On masque seulement si on a les 3 paramètres optionnels à une valeur autre que celle par défaut
-        if masked and lower_valid_range is not None and upper_valid_range is not None:
-            band = self.dataset.GetRasterBand(1)
-            in_array = band.ReadAsArray().astype(np.float32)
+        if masked and lower_valid_range is not None and upper_valid_range is not None and qa_filename is None and cloud_overlay_filename is None:
 
             # on remplace les valeurs à l'extérieur de l'intervalle de validité par -9999
-            out_array = np.where(np.logical_or(in_array > upper_valid_range, in_array < lower_valid_range), -9999, in_array)
+            out_array = np.where(np.logical_or(in_array > upper_valid_range, in_array < lower_valid_range), -9999,
+                                 in_array)
             noDataIndex = np.where(out_array < 0, 1, 0)
             array = ma.masked_array(out_array, noDataIndex)  # on masque le  array original
+
+        # Masquage appliqué dans sur les images Landsat pour les nuages
+        elif masked and qa_filename is not None:
+
+            out_array = np.where(np.logical_or(in_array > upper_valid_range, in_array < lower_valid_range), -9999,
+                                 in_array)
+            clouds = [352, 368, 416, 432, 480, 864, 880, 928, 944, 992, 328, 392, 840, 904, 1350, 834, 836, 840, 848,
+                      864, 880, 898, 900, 904, 912]
+            qa = gdal.Open(qa_filename)
+            band_qa = qa.GetRasterBand(1)
+            qa_array = band_qa.ReadAsArray().astype(np.float32)
+            for i in clouds:
+                out_array = np.where(qa_array == i, -9999, out_array)
+            noDataIndex = np.where(out_array < 0, 1, 0)
+            array = ma.masked_array(out_array, noDataIndex)  # on masque le  array original
+
+        # Masquage appliqué dans sur les images Landsat pour les nuages, mais avec l'overlay a 1000m
+        elif masked and cloud_overlay_filename is not None:
+            cloud_overlay = gdal.Open(cloud_overlay_filename)
+            cloud_overlay_band1 = cloud_overlay.GetRasterBand(1)
+            cloud_overlay_band1_array = cloud_overlay_band1.ReadAsArray().astype(np.float32)
+            out_array = np.where(
+                np.logical_or(cloud_overlay_band1_array > upper_valid_range, cloud_overlay_band1_array == -9999), -9999,
+                in_array)
+            out_array = np.where(in_array == 0, -9999, out_array)
+            noDataIndex = np.where(out_array < 0, 1, 0)
+            array = ma.masked_array(out_array, noDataIndex)
+
+
 
         else:
             band = self.dataset.GetRasterBand(1)
@@ -203,6 +235,86 @@ class Image:
         os.system(string)
 
         self.filename = outfile  # remplacement du filename de l'image par le nouveau fichier reprojeté
+
+    def cloudOverlay(self, fileLowRes):
+
+        highRes = gdal.Open(self.filename)
+        band = highRes.GetRasterBand(1)
+        pj = self.proj
+        gt = self.gt
+
+        highResArray = highRes.ReadAsArray()
+        clouds = [ 352, 368, 416, 432, 480, 864, 880, 928, 944, 992,328, 392, 840, 904, 1350, 834, 836, 840, 848, 864, 880,898,900, 904, 912, 928, 944, 992]
+        water = [324, 388, 836, 900, 1348]
+        highResArray = np.where(highResArray == 1, 0, highResArray)
+        for i in clouds:
+            highResArray = np.where(highResArray == i , 1, highResArray)
+
+        for i in water:
+            highResArray = np.where(highResArray == i, 2, highResArray)
+
+        highResArray = np.where(np.logical_and(highResArray != 1, highResArray !=2), 3, highResArray)
+        print(highResArray)
+        highRes = band = None
+
+        classIds = (np.arange(3)+1).tolist()
+
+        # Make a new bit rasters
+        drv = gdal.GetDriverByName('GTiff')
+        ds = drv.Create('bit_raster.tif', highResArray.shape[1], highResArray.shape[0],
+                        len(classIds), gdal.GDT_Byte,
+                        ['NBITS=1', 'COMPRESS=LZW', 'INTERLEAVE=BAND'])
+        ds.SetGeoTransform(gt)
+        ds.SetProjection(pj)
+        for bidx in range(ds.RasterCount):
+            band = ds.GetRasterBand(bidx + 1)
+            # create boolean
+            selection = (highResArray == classIds[bidx])
+            band.WriteArray(selection.astype('B'))
+        ds = band = None  # save, close
+
+        # Open bit raster
+        src_ds = gdal.Open('bit_raster.tif')
+
+        # Open a template or copy array, for dimensions and NODATA mask
+        cpy_ds = gdal.Open(fileLowRes)
+        band = cpy_ds.GetRasterBand(1)
+        cpy_mask = (band.ReadAsArray() == band.GetNoDataValue())
+
+        # Result raster, with same resolution and position as the copy raster
+        referenceTrans = cpy_ds.GetGeoTransform()
+        referenceTrans = list(referenceTrans)
+        referenceTrans[0] = referenceTrans[0] + referenceTrans[1]
+        referenceTrans[3] = referenceTrans[3] + referenceTrans[5]
+        referenceTrans = tuple(referenceTrans)
+        dst_ds_name = self.filename.replace('.tif','pourcentagenuage_1km.tif')
+        dst_ds = drv.Create(dst_ds_name, cpy_ds.RasterXSize-2, cpy_ds.RasterYSize-2,
+                            len(classIds), gdal.GDT_Float32, ['INTERLEAVE=BAND'])
+        dst_ds.SetGeoTransform(referenceTrans)
+        dst_ds.SetProjection(cpy_ds.GetProjection())
+
+        # Do the same as gdalwarp -r average; this might take a while to finish
+        gdal.ReprojectImage(src_ds, dst_ds, None, None, gdal.GRA_Average)
+
+        # Convert all fractions to percent, and apply the same NODATA mask from the copy raster
+        btest = dst_ds.GetRasterBand(bidx + 1)
+        artest = btest.ReadAsArray() * 100.0
+        if cpy_mask.size != artest.size:
+            cpy_mask = cpy_mask[1:-1, 1:-1]
+        cpyshape = cpy_mask.size
+        arshape = artest.size
+        NODATA = -9999
+        for bidx in range(dst_ds.RasterCount):
+            band = dst_ds.GetRasterBand(bidx + 1)
+            ar = band.ReadAsArray() * 100.0
+            ar[cpy_mask] = NODATA
+            band.WriteArray(ar)
+            band.SetNoDataValue(NODATA)
+
+        # Save and close all rasters
+        src_ds = cpy_ds = dst_ds = band = None
+
+        return dst_ds_name
 
 
 def main():
