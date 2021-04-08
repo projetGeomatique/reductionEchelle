@@ -244,7 +244,7 @@ class Landsat:
 
         albedo_array = 0.356*b2 + 0.13*b4 + 0.373*b5 + 0.085*b6 + 0.072*b7 - 0.0018
         return albedo_array
-
+  
     def getBSI(self):
         """ Permet de récupérer un array Numpy contenant l'indice de sol nu BSI (Bare Soil Index) calculé à partir des
             bandes b3 et b5 de la collection d'images Landsat 8. La correction TOA des niveaux de gris de l'image est
@@ -500,6 +500,6 @@ class Landsat:
 def main():
     pass
 
-
+  
 if __name__ == '__main__':
     main()
