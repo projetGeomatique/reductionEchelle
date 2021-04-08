@@ -244,7 +244,7 @@ class Landsat:
 
         albedo_array = 0.356*b2 + 0.13*b4 + 0.373*b5 + 0.085*b6 + 0.072*b7 - 0.0018
         return albedo_array
-
+  
     def getBSI(self):
         """ Permet de récupérer un array Numpy contenant l'indice de sol nu BSI (Bare Soil Index) calculé à partir des
             bandes b3 et b5 de la collection d'images Landsat 8. La correction TOA des niveaux de gris de l'image est
@@ -448,6 +448,10 @@ class Landsat:
 
         for band in bandsPaths:
             image = Image(band)
+
+            print(np.shape(image.getArray()))
+            print(np.shape(Image(self.qa).getArray()))
+
             band_masked = image.getArray(masked=True, lower_valid_range=0, upper_valid_range=10000,
                                          qa_filename=self.qa)
             band_masked = ma.filled(band_masked, np.nan)
@@ -480,7 +484,9 @@ class Landsat:
                                          cloud_overlay_filename=filename)
             band_masked = ma.filled(band_masked, np.nan)
             image.save_band(band_masked, image.filename.replace("masked30m_reproject", "masked1000m"))
-            newBandsPaths.append(image.filename.replace("masked30m", "masked1000m"))
+
+            #newBandsPaths.append(image.filename.replace("masked30m", "masked1000m"))
+            newBandsPaths.append(image.filename.replace("masked30m_reproject", "masked1000m"))
 
         self.b1 = newBandsPaths[0]
         self.b2 = newBandsPaths[1]
@@ -492,43 +498,8 @@ class Landsat:
 
 
 def main():
-    """ Tests de la classe et de ses méthodes.
-    """
-    b1 = r'data/CU_LC08.001_SRB1_doy2020229_aid0001.tif'
-    b2 = r'data/CU_LC08.001_SRB2_doy2020229_aid0001.tif'
-    b3 = r'data/CU_LC08.001_SRB3_doy2020229_aid0001.tif'
-    b4 = r'data/CU_LC08.001_SRB4_doy2020229_aid0001.tif'
-    b5 = r'data/CU_LC08.001_SRB5_doy2020229_aid0001.tif'
-    b6 = r'data/CU_LC08.001_SRB6_doy2020229_aid0001.tif'
-    b7 = r'data/CU_LC08.001_SRB7_doy2020229_aid0001.tif'
-    qa = r'data/CU_LC08.001_PIXELQA_doy2020229_aid0001.tif'
+    pass
 
-    """dataset = gdal.Open(b5)
-    band = dataset.GetRasterBand(1)
-    print(band.GetNoDataValue())
-
-    band = None
-    dataset = None"""
-
-
-    landsat = Landsat(b1, b2, b3, b4, b5, b6, b7, qa)
-
-    landsat.reprojectLandsat(r"data/MOD11A1.006_Clear_day_cov_doy2020229_aid0001.tif")
-
-
-    b1 = r'data/CU_LC08.001_SRB1_doy2020229_aid0001_reproject.tif'
-    b2 = r'data/CU_LC08.001_SRB2_doy2020229_aid0001_reproject.tif'
-    b3 = r'data/CU_LC08.001_SRB3_doy2020229_aid0001_reproject.tif'
-    b4 = r'data/CU_LC08.001_SRB4_doy2020229_aid0001_reproject.tif'
-    b5 = r'data/CU_LC08.001_SRB5_doy2020229_aid0001_reproject.tif'
-    b6 = r'data/CU_LC08.001_SRB6_doy2020229_aid0001_reproject.tif'
-    b7 = r'data/CU_LC08.001_SRB7_doy2020229_aid0001_reproject.tif'
-    qa = r'data/CU_LC08.001_PIXELQA_doy2020229_aid0001_reproject.tif'
-    
-    dataset2 = gdal.Open(b1)
-    band2 = dataset2.GetRasterBand(1)
-    print(band2.GetNoDataValue())
-
-
+  
 if __name__ == '__main__':
     main()

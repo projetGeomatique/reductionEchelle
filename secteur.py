@@ -273,10 +273,10 @@ class Secteur:
         # changer pour que l'utilisateur puisse choisir où sauvegarder (et/ou s'il veut sauvegarder les CSV)
         if train:
             # Sauvegarder en CSV pour visualisation et vérification plus tard
-            df.to_csv(r'secteur3/donnees_utilisees_train.csv', index=False)
+            df.to_csv(r'data/donnees_utilisees_train.csv', index=False)
             print("DataFrame pour l'entraînement sauvegardé à: secteur3/donnees_utilisees_train.csv")
         else:
-            df.to_csv(r'secteur3/donnees_utilisees_predict.csv', index=False)
+            df.to_csv(r'data/donnees_utilisees_predict.csv', index=False)
             print("DataFrame pour la prédiction sauvegardé à: secteur3/donnees_utilisees_predict.csv")
 
         return df

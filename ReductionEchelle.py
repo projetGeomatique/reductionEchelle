@@ -38,12 +38,14 @@ class ReductionEchelle:
 
         dataframe = self.secteur.getDf(predictors, train=True)  # on va cherche le Pandas DataFrame du secteur
 
+        dataframe = dataframe.dropna()
+
         predicteurs = dataframe.drop('LST', axis=1)  # on retire la température de surface (LST) du DataFrame pour ne
                                                      # conserver que les prédicteurs
-        predicteurs = predicteurs.dropna()  # pour l'entraînement, on retire les valeurs Nulles
+        #predicteurs = predicteurs.dropna()  # pour l'entraînement, on retire les valeurs Nulles
 
         modis_LST = dataframe['LST']
-        modis_LST = modis_LST.dropna()  # pour l'entraînement, on retire les valeurs Nulles
+        #modis_LST = modis_LST.dropna()  # pour l'entraînement, on retire les valeurs Nulles
         modis_LST = modis_LST.ravel()  # format accepté par le Random Forest Regression pour la variable dépendante Y
                                        # (une seule ligne)
 
@@ -161,7 +163,7 @@ class ReductionEchelle:
             kelvin_array = np.add(np.multiply(modis_array, scale_factor), add_offset)
             lst_celsius_array = np.subtract(kelvin_array, 273.15)
 
-            lst_image_1km.save_band(lst_celsius_array, r'secteur3/MODIS_1km_Celsius.tif')
+            lst_image_1km.save_band(lst_celsius_array, r'data/MODIS_1km_Celsius.tif')
 
             # Calcul des résidus à 1km
             residus_1km = ma.subtract(lst_celsius_array, resampled_predicted_100m_image.getArray())
@@ -169,15 +171,15 @@ class ReductionEchelle:
             # Sauvegarder l'image 1km pour pouvoir la ramener à 100m par la suite
             residus_1km_masked = ma.filled(residus_1km, np.nan)  # on retire les valeurs masquées du output
 
-            lst_image_1km.save_band(residus_1km_masked, r'secteur3/residus_1km.tif')
+            lst_image_1km.save_band(residus_1km_masked, r'data/residus_1km.tif')
 
             # Résidus de 1km -> 100m
-            residus_1km_load = Image(r'secteur3/residus_1km.tif')
-            residus_1km_load.reproject(r'secteur3/residus_1km.tif', r'secteur3/residus_100m.tif', 'EPSG:32618', 'np.nan',
+            residus_1km_load = Image(r'data/residus_1km.tif')
+            residus_1km_load.reproject(r'data/residus_1km.tif', r'data/residus_100m.tif', 'EPSG:32618', 'np.nan',
                                        '100.0', 'cubic')
 
             # Application des résidus sur le résultat
-            residus_100m = Image(r'secteur3/residus_100m.tif')
+            residus_100m = Image(r'data/residus_100m.tif')
 
             predicted_100m_image_with_residuals = ma.add(predicted_100m_image.getArray(), residus_100m.getArray())
 

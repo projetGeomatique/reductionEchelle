@@ -66,9 +66,22 @@ class Image:
             band_qa = qa.GetRasterBand(1)
             qa_array = band_qa.ReadAsArray().astype(np.float32)
             for i in clouds:
-                out_array = np.where(qa_array == i, -9999, out_array)
+                final_array = np.where(qa_array == i, -9999, out_array)
+
+            noDataIndex = np.where(final_array < 0, 1, 0)
+            array = ma.masked_array(final_array, noDataIndex)  # on masque le  array original
+
+        # Masquage appliqué dans sur les images Landsat pour les nuages, mais avec l'overlay a 1000m
+        elif masked and cloud_overlay_filename is not None:
+            cloud_overlay = gdal.Open(cloud_overlay_filename)
+            cloud_overlay_band1 = cloud_overlay.GetRasterBand(1)
+            cloud_overlay_band1_array = cloud_overlay_band1.ReadAsArray().astype(np.float32)
+            out_array = np.where(
+                np.logical_or(cloud_overlay_band1_array > upper_valid_range, cloud_overlay_band1_array == -9999), -9999,
+                in_array)
+            out_array = np.where(in_array == 0, -9999, out_array)
             noDataIndex = np.where(out_array < 0, 1, 0)
-            array = ma.masked_array(out_array, noDataIndex)  # on masque le  array original
+            array = ma.masked_array(out_array, noDataIndex)
 
         # Masquage appliqué dans sur les images Landsat pour les nuages, mais avec l'overlay a 1000m
         elif masked and cloud_overlay_filename is not None:
@@ -83,6 +96,14 @@ class Image:
             array = ma.masked_array(out_array, noDataIndex)
 
 
+
+        else:
+            band = self.dataset.GetRasterBand(1)
+            array = band.ReadAsArray().astype(np.float32)
+
+        band.FlushCache()
+        band = None  # fermeture du fichier
+        return array
 
         else:
             band = self.dataset.GetRasterBand(1)
