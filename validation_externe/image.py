@@ -264,13 +264,11 @@ class Image:
     def cloudOverlay(self, fileLowRes, reduce_zone=True, data_source=None):
 
         highRes = gdal.Open(self.filename)  # on ouvre l'image Landsat QA (30m)
-
         band = highRes.GetRasterBand(1)
         pj = self.proj
         gt = self.gt
 
         highResArray = highRes.ReadAsArray()
-        
         if data_source == "appeears":
             clouds = [352, 368, 416, 432, 480, 864, 880, 928, 944, 992, 328, 392, 840, 904, 1350, 834, 836, 840, 848, 864,
                       880, 898, 900, 904, 912, 928, 944, 992]

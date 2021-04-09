@@ -103,7 +103,7 @@ class ReductionEchelle:
         # Prédiction
         dataframe_predict = self.secteur.getDf(predictors, train=False)
         #dataframe_predict = dataframe_predict.fillna(0)  # à inclure si on veut masquer les nuages à 100m aussi
-        y_downscale = regressor.predict(dataframe_predict.drop('LST', axis=1))
+        y_downscale = regressor.predict(dataframe_predict.drop('LST', axis=1)) # à 100m ou 30m
 
         # *********** (à faire avec Landsat LST) ****************
 
