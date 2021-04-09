@@ -27,20 +27,20 @@ def main():
 
 
     # données Landsat
-    b1 = r'data/CU_LC08.001_SRB1_doy2020133_aid0001.tif'
-    b2 = r'data/CU_LC08.001_SRB2_doy2020133_aid0001.tif'
-    b3 = r'data/CU_LC08.001_SRB3_doy2020133_aid0001.tif'
-    b4 = r'data/CU_LC08.001_SRB4_doy2020133_aid0001.tif'
-    b5 = r'data/CU_LC08.001_SRB5_doy2020133_aid0001.tif'
-    b6 = r'data/CU_LC08.001_SRB6_doy2020133_aid0001.tif'
-    b7 = r'data/CU_LC08.001_SRB7_doy2020133_aid0001.tif'
-    qa = r'data/CU_LC08.001_PIXELQA_doy2020133_aid0001.tif'
+    b1 = "data/LC08_L1TP_014028_20200706_20200721_01_T1_B1.TIF"
+    b2 = "data/LC08_L1TP_014028_20200706_20200721_01_T1_B2.TIF"
+    b3 = "data/LC08_L1TP_014028_20200706_20200721_01_T1_B3.TIF"
+    b4 = "data/LC08_L1TP_014028_20200706_20200721_01_T1_B4.TIF"
+    b5 = "data/LC08_L1TP_014028_20200706_20200721_01_T1_B5.TIF"
+    b6 = "data/LC08_L1TP_014028_20200706_20200721_01_T1_B6.TIF"
+    b7 = "data/LC08_L1TP_014028_20200706_20200721_01_T1_B7.TIF"
+    qa = "data/LC08_L1TP_014028_20200706_20200721_01_T1_BQA.TIF"
     # source de données
     #options possibles : "appeears", "earthdata"
-    src = "appeears"
+    src = "earthdata"
     
     # données Modis
-    lst = r'data/MOD11A1.006_LST_Day_1km_doy2020133_aid0001.tif'
+    lst = r'data/MOD11_L2.clipped_test2.tif'
     qc = r'data/MOD11A1.006_QC_Day_doy2020133_aid0001.tif'
     
     # données Aster
@@ -66,7 +66,7 @@ def main():
     #######################################################################
 
 
-    # ne plus modifié
+    # ne plus modifier
 
 
 
@@ -75,7 +75,7 @@ def main():
     modis = Modis(lst, qc)
     aster = Aster(dem, num)
     # reprojection de l'image MODIS de départ en UTM18
-    modis.reprojectModisSystem('EPSG:32618', '-9999.0', '1000.0', 'average')
+    modis.reprojectModisSystem('EPSG:32618', 'np.nan', '1000.0', 'average')
 
     secteur = Secteur(modis, landsat, aster)
     secteur.prepareData(train_model=True)
@@ -100,6 +100,3 @@ def delete_temp():
 
 if __name__ == '__main__':
     main()
-
-    #array1 = Image(r'data/CU_LC08.001_SRB1_doy2020133_aid0001masked1000m.tif').getArray()
-

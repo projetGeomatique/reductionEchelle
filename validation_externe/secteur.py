@@ -41,16 +41,16 @@ class Secteur:
 
         if train_model:
             # reprojection de l'image Landsat et ré-échantillonnage à 100m et masquage des nuages
-            self.landsat_image.maskClouds30m()
+            #self.landsat_image.maskClouds30m()
 
             # Masquage de Landsat reechantillonee selon le pourcentage de nuages a l'interieur d'un pixel de 1000m
 
-            imageLandsatQa = Image(self.landsat_image.qa)
-            pourcentageNuage = imageLandsatQa.cloudOverlay(self.modis_image.lst, reduce_zone=True, data_source=self.landsat_image.src)
+            #imageLandsatQa = Image(self.landsat_image.qa)
+            #pourcentageNuage = imageLandsatQa.cloudOverlay(self.modis_image.lst, reduce_zone=True, data_source=self.landsat_image.src)
 
             self.landsat_image.reprojectLandsat(self.modis_image.lst)
 
-            self.landsat_image.maskClouds1000m(pourcentageNuage)
+            #self.landsat_image.maskClouds1000m(pourcentageNuage)
             
             # reprojection de l'image Aster pour avoir la même taille que celle de Landsat préalablement reprojetée
             self.aster_image.reprojectAster(self.modis_image.lst)
@@ -65,19 +65,19 @@ class Secteur:
                 self.modis_image.subdividePixel(10, "file",
                                                 self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif')
             elif targetResolution == 30:
-                # subdivision de l'image MODIS de 1km à 30m (environ: très proche)
+                # subdivision de l'image MODIS de 1km à 100m
                 self.modis_image.subdividePixel(33.33333333333333, "file",
                                                 self.modis_image.lst.split(".")[0] + '_subdivided_30m.tif')
 
             # réinitialise les bandes des images aux bandes originales (rééchantillonnage de 30m à 100m au lieu de 1km
             # à 100m pour Landsat)
-            self.landsat_image.b1 = self.landsat_image.b1.replace("masked1000m", "masked30m")
-            self.landsat_image.b2 = self.landsat_image.b2.replace("masked1000m", "masked30m")
-            self.landsat_image.b3 = self.landsat_image.b3.replace("masked1000m", "masked30m")
-            self.landsat_image.b4 = self.landsat_image.b4.replace("masked1000m", "masked30m")
-            self.landsat_image.b5 = self.landsat_image.b5.replace("masked1000m", "masked30m")
-            self.landsat_image.b6 = self.landsat_image.b6.replace("masked1000m", "masked30m")
-            self.landsat_image.b7 = self.landsat_image.b7.replace("masked1000m", "masked30m")
+            self.landsat_image.b1 = self.landsat_image.b1.replace("_reproject", "")
+            self.landsat_image.b2 = self.landsat_image.b2.replace("_reproject", "")
+            self.landsat_image.b3 = self.landsat_image.b3.replace("_reproject", "")
+            self.landsat_image.b4 = self.landsat_image.b4.replace("_reproject", "")
+            self.landsat_image.b5 = self.landsat_image.b5.replace("_reproject", "")
+            self.landsat_image.b6 = self.landsat_image.b6.replace("_reproject", "")
+            self.landsat_image.b7 = self.landsat_image.b7.replace("_reproject", "")
             self.landsat_image.qa = self.landsat_image.qa.replace("_reproject", "")
 
             #imageLandsatQa = Image(self.landsat_image.qa)
