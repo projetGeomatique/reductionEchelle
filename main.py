@@ -101,5 +101,3 @@ def delete_temp():
 if __name__ == '__main__':
     main()
 
-    #array1 = Image(r'data/CU_LC08.001_SRB1_doy2020133_aid0001masked1000m.tif').getArray()
-
