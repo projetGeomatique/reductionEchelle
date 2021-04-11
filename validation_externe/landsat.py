@@ -546,6 +546,9 @@ class Landsat:
         for band in bandsPaths:
             image = Image(band)
 
+            print(np.shape(image.getArray()))
+            print(np.shape(Image(self.qa).getArray()))
+
             band_masked = image.getArray(masked=True, lower_valid_range=0, upper_valid_range=10000,
                                          qa_filename=self.qa, data_source=self.src)
             band_masked = ma.filled(band_masked, np.nan)
