@@ -49,7 +49,11 @@ def main():
 
     # predicteurs sous forme de liste
     # options possibles : 'NDVI', 'NDWI', 'NDBI', 'MNDWI', 'SAVI', 'Albedo', 'BSI', 'UI', 'EVI', 'IBI', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'MNT', 'Pente'
-    predictors = ['MNT', 'NDVI']
+    predictors = ['NDWI', 'Pente', 'Orientation']
+
+    # paramètre pour la résolution à laquelle on veut effectuer la réduction d'échelle
+    # options possibles : 30, 100
+    target_resolution = 100
 
     # paramètre pour la résolution à laquelle on veut effectuer la réduction d'échelle
     # options possibles : 30, 100
@@ -94,7 +98,7 @@ def main():
 def delete_temp():
     root = 'data'
     for f in os.listdir(root):
-        if 'reproj' in f or 'subdivided' in f or 'Celsius' in f or 'residus_' in f or 'masked' in f:
+        if 'reproj' in f or 'subdivided' in f or 'Celsius' in f or 'residus_' in f or 'masked' in f or 'aspect' in f or 'slope' in f:
             os.remove(os.path.join(root, f))
 
 

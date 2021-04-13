@@ -39,6 +39,8 @@ class ReductionEchelle:
 
         dataframe = self.secteur.getDf(predictors, train=True)  # on va cherche le Pandas DataFrame du secteur
 
+        dataframe = dataframe.replace(-9999.0, np.nan)
+
         dataframe = dataframe.dropna()
 
         predicteurs = dataframe.drop('LST', axis=1)  # on retire la température de surface (LST) du DataFrame pour ne

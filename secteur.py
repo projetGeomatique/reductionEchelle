@@ -218,6 +218,10 @@ class Secteur:
             pente = self.aster_image.getPente()
             predictors_dict['Pente'] = pente
 
+        if 'Orientation' in predictors:
+            orientation = self.aster_image.getOrientation()
+            predictors_dict['Orientation'] = orientation
+
         # Reshape les array en colonnes pour tous les prédicteurs
         for predictor in predictors_dict:
             predictors_dict[predictor] = (predictors_dict[predictor]).reshape(-1, 1)

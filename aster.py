@@ -1,6 +1,6 @@
 import numpy as np
 from image import Image
-
+import gdal
 
 class Aster:
     """ Classe modélisant une collection d'images ASTER. Plus précisément, elle modélise la collection ASTER GDEM
@@ -17,7 +17,7 @@ class Aster:
     def __init__(self, mnt, qa):
         self.mnt = mnt
         self.qa = qa
-        self.resolution = 30
+
 
     def getMNT(self):
         """ Permet de récupérer un array Numpy du modèle numérique de terrain. Les valeurs à l'extérieur de
@@ -32,37 +32,49 @@ class Aster:
 
         return mnt_array
 
+
     def getPente(self):
         """ Permet de récupérer un array Numpy de la pente (produit dérivé du modèle numérique de terrain).
                 Returns:
                     pente (Numpy.ma.masked_array): Array des valeurs de pente du modèle numérique de terrain (MNT).
+        """        
+        mnt = gdal.Open(self.mnt)
+
+        slope = gdal.DEMProcessing(r'data/slope.tif', mnt, 'slope', computeEdges=True)
+        slope = None
+
+        ds = gdal.Open(r'data/slope.tif')
+        band = ds.GetRasterBand(1)
+        array = band.ReadAsArray()
+
+        print('valeur de pente')
+        print(array)
+
+        array[array == 0] = -9999
+
+        print('valeur de pente')
+        print(array)
+
+        return array
+
+
+    def getOrientation(self):
+        """ Permet de récupérer un array Numpy de l'orientation (produit dérivé du modèle numérique de terrain).
+                Returns:
+                    orientation (Numpy.ma.masked_array): Array des valeurs de l'orientation du modèle numérique de terrain (MNT).
         """
-        mnt = self.getMNT()
+        mnt = gdal.Open(self.mnt)
 
-        shape = mnt.shape
-        pente = np.empty(shape, dtype=float)
-        
-        for i in range(shape[0] - 1):
-            for j in range(shape[1] - 1):
-                if i == 0 or j == 0:
-                    pente[i, j] = 0
-                else:
-                    za = mnt[i - 1, j - 1]
-                    zb = mnt[i - 1, j]
-                    zc = mnt[i - 1, j + 1]
-                    zd = mnt[i, j - 1]
-                    ze = mnt[i, j]
-                    zf = mnt[i, j + 1]
-                    zg = mnt[i + 1, j - 1]
-                    zh = mnt[i + 1, j]
-                    zi = mnt[i + 1, j + 1]
+        aspect = gdal.DEMProcessing(r'data/aspect.tif', mnt, 'aspect', computeEdges=True)
+        aspect = None
 
-                    dzdx = ((zc + 2*zf + zi) - (za + 2*zd + zg)) / (8 * self.resolution)
-                    dzdy = ((zg + 2*zh + zi) - (za + 2*zb + zc)) / (8 * self.resolution)
+        ds = gdal.Open(r'data/aspect.tif')
+        band = ds.GetRasterBand(1)
+        array = band.ReadAsArray()
 
-                    pente[i, j] = (dzdx**2 + dzdy**2)**(1/2)
-        
-        return pente
+        array[array == 0] = -9999
+
+        return array
 
     def reprojectAster(self, referenceFile, reduce_zone=True):
         """ Permet de reprojeter, découper, aligner et rééchantillonner une image à partir d'une image de référence.

@@ -292,7 +292,8 @@ class Image:
                                                                 # !!! POURQUOI REMPLACER TOUT CE QUI EST PAS UN NUAGE
                                                                 # OU DE L'EAU PAR 3? !!!
                                                                 # !!! C'EST PAS À ÇA QUE ÇA SERT LE 0 AU DÉPART? !!!
-        print(highResArray)
+        #print(highResArray)
+
         highRes = band = None
 
         classIds = (np.arange(3) + 1).tolist()  # classIds: [1, 2, 3]
