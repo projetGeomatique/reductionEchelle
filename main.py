@@ -55,6 +55,10 @@ def main():
     # options possibles : 30, 100
     target_resolution = 100
 
+    # paramètre pour la résolution à laquelle on veut effectuer la réduction d'échelle
+    # options possibles : 30, 100
+    target_resolution = 30
+
     # paramètre pour l'application des résidus
     residualCorrection = True
 
