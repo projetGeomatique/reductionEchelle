@@ -21,7 +21,6 @@ class Landsat:
                        à appliquer aux images ne sont pas les mêmes dépendamment de la plateforme de téléchargement des
                        images.
     """
-
     def __init__(self, b1, b2, b3, b4, b5, b6, b7, qa, src):
         self.b1 = b1
         self.b2 = b2
@@ -91,8 +90,7 @@ class Landsat:
             b5_DN = b5_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b5 = np.add(np.multiply(b5_DN, float(0.00002)), float(-0.10))
 
-        return np.divide(np.subtract(b5, b4), np.add(b5, b4),
-                         where=((np.add(b5, b4)) != 0))  # condition where pour éviter la division par 0
+        return np.divide(np.subtract(b5, b4), np.add(b5, b4), where=((np.add(b5, b4)) != 0))  # condition where pour éviter la division par 0
 
     def getNdbi(self):
         """ Permet de récupérer un array Numpy contenant l'indice de bâti NDBI (Normalized Difference Built-up Index)
@@ -129,8 +127,7 @@ class Landsat:
             b6_DN = b6_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b6 = np.add(np.multiply(b6_DN, float(0.00002)), float(-0.10))
 
-        return np.divide(np.subtract(b6, b5), np.add(b6, b5),
-                         where=((np.add(b6, b5)) != 0))  # condition where pour éviter la division par 0
+        return np.divide(np.subtract(b6, b5), np.add(b6, b5), where=((np.add(b6, b5)) != 0))  # condition where pour éviter la division par 0
 
     def getNdwi(self):
         """ Permet de récupérer un array Numpy contenant l'indice d'humidité NDWI (Normalized Difference Water Index)
@@ -167,8 +164,7 @@ class Landsat:
             b5_DN = b5_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b5 = np.add(np.multiply(b5_DN, float(0.00002)), float(-0.10))
 
-        return np.divide(np.subtract(b3, b5), np.add(b3, b5),
-                         where=((np.add(b3, b5)) != 0))  # condition where pour éviter la division par 0
+        return np.divide(np.subtract(b3, b5), np.add(b3, b5), where=((np.add(b3, b5)) != 0))  # condition where pour éviter la division par 0
 
     def getMndwi(self):
         """ Permet de récupérer un array Numpy contenant l'indice d'humidité MNDWI (Modified Normalized Difference Water
@@ -206,8 +202,7 @@ class Landsat:
             b6_DN = b6_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b6 = np.add(np.multiply(b6_DN, float(0.00002)), float(-0.10))
 
-        return np.divide(np.subtract(b3, b6), np.add(b3, b6),
-                         where=((np.add(b3, b6)) != 0))  # condition where pour éviter la division par 0
+        return np.divide(np.subtract(b3, b6), np.add(b3, b6), where=((np.add(b3, b6)) != 0))  # condition where pour éviter la division par 0
 
     def getSAVI(self):
         """ Permet de récupérer un array Numpy contenant l'indice de végétation ajusté au sol SAVI (Soil Adjusted
@@ -245,8 +240,7 @@ class Landsat:
             b5_DN = b5_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b5 = np.add(np.multiply(b5_DN, float(0.00002)), float(-0.10))
 
-        return np.multiply(np.divide(np.subtract(b5, b4), (np.add(b5, b4) + 0.5), where=(np.add(b5, b4) + 0.5) != 0),
-                           1.5)  # condition where pour éviter la division par 0
+        return np.multiply(np.divide(np.subtract(b5, b4), (np.add(b5, b4)+0.5), where=(np.add(b5, b4)+0.5) != 0), 1.5)  # condition where pour éviter la division par 0
 
     def getAlbedo(self):
         """ Permet de récupérer un array Numpy contenant l'albédo de surface calculé à partir des bandes b2, b4, b5, b6
@@ -322,9 +316,9 @@ class Landsat:
             b7_DN = b7_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b7 = np.add(np.multiply(b7_DN, float(0.00002)), float(-0.10))
 
-        albedo_array = 0.356 * b2 + 0.13 * b4 + 0.373 * b5 + 0.085 * b6 + 0.072 * b7 - 0.0018
+        albedo_array = 0.356*b2 + 0.13*b4 + 0.373*b5 + 0.085*b6 + 0.072*b7 - 0.0018
         return albedo_array
-
+  
     def getBSI(self):
         """ Permet de récupérer un array Numpy contenant l'indice de sol nu BSI (Bare Soil Index) calculé à partir des
             bandes b3 et b5 de la collection d'images Landsat 8. La correction TOA des niveaux de gris de l'image est
@@ -360,8 +354,7 @@ class Landsat:
             b5_DN = b5_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b5 = np.add(np.multiply(b5_DN, float(0.00002)), float(-0.10))
 
-        return np.divide(np.add(b3, b5), np.subtract(b3, b5),
-                         where=((np.subtract(b3, b5)) != 0))  # condition where pour éviter la division par 0
+        return np.divide(np.add(b3, b5), np.subtract(b3, b5), where=((np.subtract(b3, b5)) != 0))  # condition where pour éviter la division par 0
 
     def getUI(self):
         """ Permet de récupérer un array Numpy contenant l'indice d'urbanisation UI (Urban Index) calculé à partir des
@@ -398,8 +391,7 @@ class Landsat:
             b7_DN = b7_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b7 = np.add(np.multiply(b7_DN, float(0.00002)), float(-0.10))
 
-        return np.divide(np.subtract(b7, b5), np.add(b7, b5),
-                         where=((np.add(b7, b5)) != 0))  # condition where pour éviter la division par 0
+        return np.divide(np.subtract(b7, b5), np.add(b7, b5), where=((np.add(b7, b5)) != 0))  # condition where pour éviter la division par 0
 
     def getEVI(self):
         """ Permet de récupérer un array Numpy contenant l'indice de végétation renforcé EVI (Enhanced Vegetation Index)
@@ -449,9 +441,7 @@ class Landsat:
             b5_DN = b5_img.getArray(masked=True, lower_valid_range=1, upper_valid_range=65535)
             b5 = np.add(np.multiply(b5_DN, float(0.00002)), float(-0.10))
 
-        return np.multiply(
-            np.divide(np.subtract(b5, b4), (b5 + 6 * b4 - 7.5 * b2 + 1), where=((b5 + 6 * b4 - 7.5 * b2 + 1) != 0)),
-            2.5)  # condition where pour éviter la division par 0
+        return np.multiply(np.divide(np.subtract(b5, b4), (b5 + 6*b4 - 7.5*b2 + 1), where=((b5 + 6*b4 - 7.5*b2 + 1) != 0)), 2.5)  # condition where pour éviter la division par 0
 
     def getIBI(self):
         """ Permet de récupérer un array Numpy contenant l'indice de bâti IBI (Index-Based Built-up Index) calculé à
@@ -467,8 +457,7 @@ class Landsat:
         numerator = np.subtract(ndbi, np.divide(np.add(savi, mndwi), 2))
         denominator = np.add(ndbi, np.divide(np.add(savi, mndwi), 2))
 
-        return np.divide(numerator, denominator,
-                         where=(denominator != 0))  # condition where pour éviter la division par 0
+        return np.divide(numerator, denominator, where=(denominator != 0))  # condition where pour éviter la division par 0
 
     def getBand(self, bandNumber):
         """ Permet de récupérer un array Numpy contenant les valeurs d'une des bandes disponibles dans la collection
@@ -605,6 +594,6 @@ class Landsat:
 def main():
     pass
 
-
+  
 if __name__ == '__main__':
     main()

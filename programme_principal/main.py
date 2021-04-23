@@ -27,11 +27,11 @@ def main():
 
     # source de données (options possibles : "appeears", "earthdata")
     src = "appeears"
-
+    
     # données Modis
     lst = r'data/MOD11A1.006_LST_Day_1km_doy2020133_aid0001.tif'
     qc = r'data/MOD11A1.006_QC_Day_doy2020133_aid0001.tif'
-
+    
     # données Aster
     dem = r'data/ASTGTM_NC.003_ASTER_GDEM_DEM_doy2000061_aid0001.tif'
     num = r'data/ASTGTM_NUMNC.003_ASTER_GDEM_NUM_doy2000061_aid0001.tif'
@@ -53,7 +53,9 @@ def main():
     ######################### fin des paramètres ##########################
     #######################################################################
 
+
     # ne plus modifier le code à partir de cette ligne
+
 
     # la chaîne de traitements débute ici
 
@@ -77,9 +79,9 @@ def main():
 
     # application de la réduction d'échelle avec la méthode Random Forest Regression
     rfr.applyDownscaling(predictors, outputFile=r'data/MODIS_predit_100m.tif',
-                         residualCorrection=residualCorrection,
-                         outputFile_withResidualCorrection=r'data/MODIS_predit_100m_avec_residus.tif',
-                         targetResolution=target_resolution)
+                                     residualCorrection=residualCorrection,
+                                     outputFile_withResidualCorrection= r'data/MODIS_predit_100m_avec_residus.tif',
+                                     targetResolution=target_resolution)
 
     # supprimer tous les fichiers temporaires si on a choisi cette option
     if supprimer_les_fichiers_temporaires:

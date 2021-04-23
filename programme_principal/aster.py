@@ -33,7 +33,7 @@ class Aster:
         """ Permet de récupérer un array Numpy de la pente (produit dérivé du modèle numérique de terrain).
                 Returns:
                     pente (Numpy.ma.masked_array): Array des valeurs de pente du modèle numérique de terrain (MNT).
-        """
+        """        
         mnt = gdal.Open(self.mnt)
 
         slope = gdal.DEMProcessing(r'data/slope.tif', mnt, 'slope', computeEdges=True)

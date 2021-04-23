@@ -43,17 +43,17 @@ class Secteur:
         # on prépare les images pour l'entraînement (toutes les images à 1000m)
         if train_model:
             # masquage des nuages sur l'image Landsat à 30m directement
-            #self.landsat_image.maskClouds30m()
+            self.landsat_image.maskClouds30m()
 
             # Masquage de l'image Landsat rééchantillonnée selon le pourcentage de nuages à l'intérieur d'un pixel de
             # 1000m
-            #imageLandsatQa = Image(self.landsat_image.qa)
-            #pourcentageNuage = imageLandsatQa.cloudOverlay(self.modis_image.lst, reduce_zone=True, data_source=self.landsat_image.src)
+            imageLandsatQa = Image(self.landsat_image.qa)
+            pourcentageNuage = imageLandsatQa.cloudOverlay(self.modis_image.lst, reduce_zone=True, data_source=self.landsat_image.src)
 
             self.landsat_image.reprojectLandsat(self.modis_image.lst)
 
-            #self.landsat_image.maskClouds1000m(pourcentageNuage)
-
+            self.landsat_image.maskClouds1000m(pourcentageNuage)
+            
             # reprojection de l'image Aster pour avoir la même taille que celle de Landsat préalablement reprojetée
             self.aster_image.reprojectAster(self.modis_image.lst)
 
@@ -74,17 +74,17 @@ class Secteur:
 
             # réinitialise les bandes des images aux bandes originales (rééchantillonnage de 30m à 100m au lieu de 1km
             # à 100m pour Landsat)
-            self.landsat_image.b1 = self.landsat_image.b1.replace("_reproject", "")
-            self.landsat_image.b2 = self.landsat_image.b2.replace("_reproject", "")
-            self.landsat_image.b3 = self.landsat_image.b3.replace("_reproject", "")
-            self.landsat_image.b4 = self.landsat_image.b4.replace("_reproject", "")
-            self.landsat_image.b5 = self.landsat_image.b5.replace("_reproject", "")
-            self.landsat_image.b6 = self.landsat_image.b6.replace("_reproject", "")
-            self.landsat_image.b7 = self.landsat_image.b7.replace("_reproject", "")
+            self.landsat_image.b1 = self.landsat_image.b1.replace("masked1000m", "masked30m")
+            self.landsat_image.b2 = self.landsat_image.b2.replace("masked1000m", "masked30m")
+            self.landsat_image.b3 = self.landsat_image.b3.replace("masked1000m", "masked30m")
+            self.landsat_image.b4 = self.landsat_image.b4.replace("masked1000m", "masked30m")
+            self.landsat_image.b5 = self.landsat_image.b5.replace("masked1000m", "masked30m")
+            self.landsat_image.b6 = self.landsat_image.b6.replace("masked1000m", "masked30m")
+            self.landsat_image.b7 = self.landsat_image.b7.replace("masked1000m", "masked30m")
             self.landsat_image.qa = self.landsat_image.qa.replace("_reproject", "")
 
-            # imageLandsatQa = Image(self.landsat_image.qa)
-            # pourcentageNuage = imageLandsatQa.cloudOverlay(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif', reduce_zone=False)
+            #imageLandsatQa = Image(self.landsat_image.qa)
+            #pourcentageNuage = imageLandsatQa.cloudOverlay(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif', reduce_zone=False)
 
             self.modis_image.lst = self.modis_image.lst.replace("_reproject", "")
             self.modis_image.qa = self.modis_image.qa.replace("_reproject", "")
@@ -94,18 +94,15 @@ class Secteur:
 
             if targetResolution == 100:
                 # reprojection de l'image Landsat et ré-échantillonnage à 100m
-                self.landsat_image.reprojectLandsat(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif',
-                                                    reduce_zone=False)
+                self.landsat_image.reprojectLandsat(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif', reduce_zone=False)
 
-                # self.landsat_image.maskClouds1000m(pourcentageNuage)  # masque à 100m cette fois-ci
+                #self.landsat_image.maskClouds1000m(pourcentageNuage)  # masque à 100m cette fois-ci
 
                 # reprojection de l'image Aster pour avoir la même taille que celle de Landsat préalablement reprojetée
-                self.aster_image.reprojectAster(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif',
-                                                reduce_zone=False)
+                self.aster_image.reprojectAster(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif', reduce_zone=False)
 
                 # reprojection de l'image MODIS pour avoir la même taille que celle de Landsat préalablement reprojetée
-                self.modis_image.reprojectModis(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif',
-                                                reduce_zone=False)
+                self.modis_image.reprojectModis(self.modis_image.lst.split(".")[0] + '_subdivided_100m.tif', reduce_zone=False)
 
             elif targetResolution == 30:
                 # reprojection de l'image Landsat et ré-échantillonnage à 100m
@@ -269,7 +266,7 @@ class Secteur:
 
         # masque unique pour tous les jeux de données
         mask = sum(masks)  # somme de masques: toutes les valeurs qui ne sont pas égales à 0 corresponded à une position
-        # à masquer
+                           # à masquer
         self.mask = mask
 
         # masquage identique de tous les jeux de données
