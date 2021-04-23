@@ -11,7 +11,22 @@ import os
 
 
 def downscale():
+    """ Permet d'effectuer la réduction d'échelle. Même principe que l'exécution à partir du fichier main pour le
+        programme principal.
+
+        On utilise MOD11_L2 et des images Landsat 8 provenant de EarthData qui ont été acquises à des heures très
+        rapproches la même journée pour s'assurer d'avoir des températures de surface assez similaires (comparables).
+
+        *** Il faut au préalable découper l'image MOD11_L2 pour qu'elle soit plus petite ou de même taille que les
+            images Landsat et Aster afin que le découpage/alignement/rééchantillonnage de Landsat et Aster par rapport
+            à l'image de référence Modis s'effectue correctement.
+            Ce découpage peut être fait facilement dans QGIS selon l'étendue d'un shapefile ou une zone entrée
+            manuellement.
+        ***
+    """
+
     # 19 mai 2020
+    # données Landsat
     b1 = r'data/LC08_L1TP_014028_20200706_20200721_01_T1_B1.TIF'
     b2 = r'data/LC08_L1TP_014028_20200706_20200721_01_T1_B2.TIF'
     b3 = r'data/LC08_L1TP_014028_20200706_20200721_01_T1_B3.TIF'
@@ -24,39 +39,47 @@ def downscale():
     src = "earthdata"
     landsat = Landsat(b1, b2, b3, b4, b5, b6, b7, qa, src)
 
-    lst = r'data/MOD11_L2.clipped_test2.tif'
-    qa = r'data/MOD11A1.006_QC_Day_doy2020133_aid0001.tif'  # bande inutile
+    # données Modis
+    lst = r'data/MOD11_L2.clipped_test2.tif'  # image Modis découpée
+    qa = r'data/MOD11A1.006_QC_Day_doy2020133_aid0001.tif'  # bande inutile pour la validation externe
     modis = Modis(lst, qa)
 
     # reprojection de l'image MODIS de départ en UTM18
     modis.reprojectModisSystem('EPSG:32618', 'np.nan', '1000.0', 'average')
 
+    # données Aster
     mnt = r'data/ASTGTM_NC.003_ASTER_GDEM_DEM_doy2000061_aid0001.tif'
     qa = r'data/ASTGTM_NUMNC.003_ASTER_GDEM_NUM_doy2000061_aid0001.tif'
     aster = Aster(mnt, qa)
 
+    # construction de l'objet Secteur
     secteur3 = Secteur(modis, landsat, aster)
     secteur3.prepareData(train_model=True)
 
+    # construction de l'objet ReductionEchelle à partir du secteur
     rfr = ReductionEchelle(secteur3)
 
-    # options fournies:
-    predictors = ['NDVI', 'NDWI', 'NDBI']
-    #predictors = ['NDVI', 'NDWI', 'NDBI', 'MNDWI', 'SAVI', 'Albedo', 'BSI', 'UI', 'EVI', 'IBI', 'B1', 'B2', 'B3',
-    #              'B4', 'B5', 'B6', 'B7', 'MNT', 'Pente']
+    # prédicteurs
 
-    #predictors = ['NDVI', 'NDWI', 'NDBI', 'MNDWI', 'SAVI', 'Albedo', 'BSI', 'UI', 'EVI', 'IBI', 'MNT']
-    #predictors = ['MNT', 'B7', 'B6', 'B1', 'B2', 'BSI', 'MNDWI']  ## Not bad!
-    #predictors = ['NDVI', 'MNT']
-    #predictors = ['MNT', 'Albedo', 'MNDWI', 'BSI', 'B1', 'B2']
-    #predictors = ['NDVI', 'NDWI', 'MNT']
+    # choix de prédicteurs sous forme de liste
+    # options possibles : 'NDVI', 'NDWI', 'NDBI', 'MNDWI', 'SAVI', 'Albedo', 'BSI', 'UI', 'EVI', 'IBI', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'MNT', 'Pente', 'Orientation'
+    predictors = ['NDWI', 'NDWI', 'NDBI']
+
+    # réduction d'échelle
     rfr.applyDownscaling(predictors, outputFile=r'data/MODIS_predit_100m.tif',
                                      residualCorrection=True,
                                      outputFile_withResidualCorrection= r'data/MODIS_predit_100m_avec_residus.tif',
-                                     targetResolution=100)
+                                     targetResolution=100)  # validation externe seulement possible à 100m
 
 
 def validationExterne():
+    """ Permet d'effectuer une validation externe entre l'image résultante de la réduction d'échelle et une image de
+        température de surface calculée à partir des bandes 10 et 11 de Landsat 8 (disponibles sur EarthData).
+
+        Les résultats de la validation externe sont des métriques de qualité en comparant les résultats de la réduction
+        d'échelle à la température de surface calculée à 100m. Ces résultats sont présentés dans la console par des
+        'print' (lignes 129 à 144).
+    """
 
     # Match prediction result extent
     landsat_b10 = Image(r'data/LC08_L1TP_014028_20200706_20200721_01_T1_B10.TIF')
@@ -103,14 +126,12 @@ def validationExterne():
     predicted_lst = ma.filled(predicted_lst, 0)
     predicted_lst_with_residuals = ma.filled(predicted_lst_with_residuals, 0)
 
-
-
     # Without residuals
     print('Without residual correction')
     print('Mean Absolute Error (MAE):', metrics.mean_absolute_error(predicted_lst, landsat_lst))
     print('Mean Squared Error:', metrics.mean_squared_error(predicted_lst, landsat_lst))
-    print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(predicted_lst, landsat_lst)))
-    print('Accuracy:', 100 - np.mean(100 * ((abs(predicted_lst - landsat_lst)) / landsat_lst)))
+    print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(predicted_lst, landsat_lst)), "°C")
+    print('Accuracy:', 100 - np.mean(100 * ((abs(predicted_lst - landsat_lst)) / landsat_lst)), "%")
     print('Explained variance score (EVS):', metrics.explained_variance_score(predicted_lst, landsat_lst))
 
     # With residuals
@@ -118,12 +139,15 @@ def validationExterne():
     print('With residual correction')
     print('Mean Absolute Error (MAE):', metrics.mean_absolute_error(predicted_lst_with_residuals, landsat_lst))
     print('Mean Squared Error:', metrics.mean_squared_error(predicted_lst_with_residuals, landsat_lst))
-    print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(predicted_lst_with_residuals, landsat_lst)))
-    print('Accuracy:', 100 - np.mean(100 * ((abs(predicted_lst_with_residuals - landsat_lst)) / landsat_lst)))
+    print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(predicted_lst_with_residuals, landsat_lst)), "°C")
+    print('Accuracy:', 100 - np.mean(100 * ((abs(predicted_lst_with_residuals - landsat_lst)) / landsat_lst)), "%")
     print('Explained variance score (EVS):', metrics.explained_variance_score(predicted_lst_with_residuals, landsat_lst))
 
 
 def delete_temp():
+    """ Fonction permettant de supprimer les fichiers temporaires qui contiennent un des mots-clés listés ci-dessous dans
+        le dossier de travail (sous-dossier 'data' où les données doivent se retrouver).
+    """
     root = 'data'
     for f in os.listdir(root):
         if 'reproj' in f or 'subdivided' in f or 'Celsius' in f or 'residus_' in f or 'masked' in f:
@@ -131,8 +155,7 @@ def delete_temp():
 
 
 if __name__ == '__main__':
+    # Exécution des fonctions précédentes en ordre pour effectuer la validation externe.
     downscale()
     validationExterne()
     delete_temp()
-
-
