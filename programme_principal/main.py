@@ -94,7 +94,8 @@ def delete_temp():
     """
     root = 'data'
     for f in os.listdir(root):
-        if 'reproj' in f or 'subdivided' in f or 'Celsius' in f or 'residus_' in f or 'masked' in f or 'aspect' in f or 'slope' in f:
+        if 'reproj' in f or 'subdivided' in f or 'Celsius' in f or 'residus_' in f or 'masked' in f \
+                or 'aspect' in f or 'slope' in f or 'bit_raster' in f or 'pourcentagenuage' in f:
             os.remove(os.path.join(root, f))
 
 
